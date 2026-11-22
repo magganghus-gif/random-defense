@@ -24,12 +24,14 @@ body{background:radial-gradient(ellipse at top,#1a6650,#0c2f25 70%) fixed;backgr
 .row{display:flex;gap:6px;justify-content:center}
 .card{flex:0 0 auto;width:calc((100% - 36px)/7);max-width:62px;aspect-ratio:5/7;background:var(--card);border-radius:8px;
   color:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:800;
-  box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .12s,outline-color .12s;outline:3px solid transparent;cursor:pointer}
+  box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .12s,outline-color .12s;outline:3px solid transparent;cursor:pointer;position:relative}
 .opp .card{width:calc((100% - 24px)/5);max-width:66px;cursor:default}
 .card .r{font-size:clamp(15px,4.6vw,22px);line-height:1}
 .card .s{font-size:clamp(16px,5vw,24px);line-height:1}
 .card.red{color:var(--red)}
 .card.sel{transform:translateY(-12px);outline-color:var(--accent)}
+.card.new{box-shadow:0 0 0 3px var(--good),0 2px 5px rgba(0,0,0,.35)}
+.card.new::after{content:"NEW";position:absolute;top:-8px;right:-4px;font-size:9px;background:var(--good);color:#0c2f25;padding:1px 4px;border-radius:4px}
 .card.deal{animation:deal .35s ease-out both}
 @keyframes deal{from{transform:translateY(24px) scale(.85);opacity:0}}
 .timer{height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;margin-top:12px}
@@ -41,7 +43,7 @@ body{background:radial-gradient(ellipse at top,#1a6650,#0c2f25 70%) fixed;backgr
 .status.win{color:var(--good)} .status.lose,.status.bad{color:var(--bad)}
 .status.great{color:var(--accent);font-size:18px} .status.good{color:var(--good)} .status.meh{color:var(--muted)}
 .btns{display:flex;gap:8px}
-button{font:inherit;border:0;border-radius:12px;padding:14px 10px;font-weight:700;font-size:16px;cursor:pointer;flex:1;
+button{font:inherit;border:0;white-space:nowrap;border-radius:12px;padding:14px 10px;font-weight:700;font-size:16px;cursor:pointer;flex:1;
   background:var(--btn);color:var(--text)}
 button.primary{background:var(--accent);color:#3a2a00}
 button:disabled{opacity:.38;cursor:default}
@@ -176,9 +178,9 @@ function sortHand(){
   if (S.sortBy === 'suit') S.hand.sort((a,b) => si(a.s) - si(b.s) || b.r - a.r);
   else S.hand.sort((a,b) => b.r - a.r || si(a.s) - si(b.s));
 }
-function refill(extraEx = []){
+function refill(extraEx = [], markNew = false){
   const ex = new Set([...S.hand, ...extraEx].map(key));
-  while (S.hand.length < HAND){ const c = randomCardNotIn(ex); ex.add(key(c)); c.fresh = true; S.hand.push(c); }
+  while (S.hand.length < HAND){ const c = randomCardNotIn(ex); ex.add(key(c)); c.fresh = true; if (markNew) c.isNew = true; S.hand.push(c); }
   sortHand();
 }
 
@@ -196,7 +198,8 @@ function newGame(){
 }
 function startRound(){
   S.opp = genOpp(); S.oppEval = evaluate(S.opp); S.oppFresh = true;
-  S.sel.clear(); S.phase = 'play'; S.msg = null;
+  S.sel.clear(); S.phase = 'play'; S.msg = null; S.hint = null;
+  S.hand.forEach(c => delete c.isNew);
   S.deadline = performance.now() + TIME * 1000;
   render();
 }
@@ -241,11 +244,15 @@ function gameOver(){
   render();
 }
 function redraw(){
-  if (S.phase !== 'play' || S.redraws <= 0 || !S.sel.size) return;
+  if (S.phase !== 'play') return;
+  if (S.redraws <= 0){ S.hint = '이번 스테이지 다시받기를 다 썼어요'; return render(); }
+  if (!S.sel.size){ S.hint = '바꿀 카드를 먼저 누른 다음 다시받기를 누르세요'; return render(); }
   const removed = selCards();
+  S.hand.forEach(c => delete c.isNew);
   S.hand = S.hand.filter((_, i) => !S.sel.has(i));
   S.sel.clear(); S.redraws--;
-  refill(removed);
+  refill(removed, true);
+  S.hint = `${removed.length}장을 새로 받았어요 (남은 다시받기 ${S.redraws}회)`;
   render();
 }
 function onCard(i){
@@ -256,6 +263,7 @@ function onCard(i){
     S.pickCard = null; sortHand(); render(); return;
   }
   if (S.phase !== 'play') return;
+  S.hint = null;
   if (S.sel.has(i)) S.sel.delete(i);
   else if (S.sel.size < 5) S.sel.add(i);
   render();
@@ -316,16 +324,17 @@ function statusHTML(){
       ? `<div class="status good">${rl(S.pickCard.r)}${S.pickCard.s} — 바꿀 내 카드를 누르세요&nbsp;<button class="mini" data-act="cancel-pick">취소</button></div>`
       : `<div class="status">코인으로 패를 다듬고 다음 스테이지로!</div>`;
   }
+  if (S.hint) return `<div class="status good">${S.hint}</div>`;
   if (!S.sel.size) return `<div class="status meh">상대보다 높은 패를 골라 내세요 (1~5장)</div>`;
   return `<div class="status">내 패: ${handName(evaluate(selCards()))}</div>`;
 }
 function handHTML(){
   const replacing = S.phase === 'shop' && S.pickCard;
   return `<div class="zone">
-    <div class="zone-h"><span>내 패 ${S.hand.length}장 · 다시받기 🔄${S.redraws}</span>
+    <div class="zone-h"><span>내 패 ${S.hand.length}장 · 바꿀 카드를 골라 다시받기</span>
       <button class="mini" data-act="sort">정렬: ${S.sortBy === 'rank' ? '숫자' : '무늬'}</button></div>
     <div class="row hand">${S.hand.map((c, i) =>
-      cardHTML(c, `${S.sel.has(i) ? 'sel' : ''} ${c.fresh ? 'deal' : ''}`, `data-act="card" data-i="${i}" ${replacing ? 'style="outline-color:rgba(255,207,74,.5)"' : ''}`)
+      cardHTML(c, `${S.sel.has(i) ? 'sel' : ''} ${c.fresh ? 'deal' : ''} ${c.isNew ? 'new' : ''}`, `data-act="card" data-i="${i}" ${replacing ? 'style="outline-color:rgba(255,207,74,.5)"' : ''}`)
     ).join('')}</div>
   </div>`;
 }
@@ -334,7 +343,7 @@ function buttonsHTML(){
   const p = S.phase === 'play';
   const canPlay = p && S.sel.size > 0;
   return `<div class="btns">
-    <button data-act="redraw" ${p && S.sel.size && S.redraws > 0 ? '' : 'disabled'}>🔄 다시받기</button>
+    <button data-act="redraw" ${p ? '' : 'disabled'}>다시받기 (${S.redraws})</button>
     <button data-act="pass" ${p ? '' : 'disabled'}>포기</button>
     <button class="primary" data-act="play" ${canPlay ? '' : 'disabled'}>내기</button>
   </div>`;
