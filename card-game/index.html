@@ -22,6 +22,7 @@ body{background:radial-gradient(ellipse at top,#1a6650,#0c2f25 70%) fixed;backgr
 .zone-h{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted);margin-bottom:10px;gap:8px}
 .zone-h b{color:var(--text);font-size:16px}
 .row{display:flex;gap:6px;justify-content:center}
+.row.hand{flex-wrap:wrap;row-gap:14px;padding-top:6px}
 .card{flex:0 0 auto;width:calc((100% - 36px)/7);max-width:62px;aspect-ratio:5/7;background:var(--card);border-radius:8px;
   color:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:800;
   box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .12s,outline-color .12s;outline:3px solid transparent;cursor:pointer;position:relative}
@@ -30,8 +31,6 @@ body{background:radial-gradient(ellipse at top,#1a6650,#0c2f25 70%) fixed;backgr
 .card .s{font-size:clamp(16px,5vw,24px);line-height:1}
 .card.red{color:var(--red)}
 .card.sel{transform:translateY(-12px);outline-color:var(--accent)}
-.card.new{box-shadow:0 0 0 3px var(--good),0 2px 5px rgba(0,0,0,.35)}
-.card.new::after{content:"NEW";position:absolute;top:-8px;right:-4px;font-size:9px;background:var(--good);color:#0c2f25;padding:1px 4px;border-radius:4px}
 .card.deal{animation:deal .35s ease-out both}
 @keyframes deal{from{transform:translateY(24px) scale(.85);opacity:0}}
 .timer{height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;margin-top:12px}
@@ -79,12 +78,10 @@ button.mini{flex:none;padding:6px 10px;font-size:13px;border-radius:8px;backgrou
 <div id="app"></div>
 <script>
 // ---------- 설정 ----------
-const ROUNDS = 5;          // 스테이지당 라운드 수
 const TIME = 30;           // 라운드 제한시간(초)
-const HAND = 7;            // 내 손패 유지 장수
-const BASE_REDRAW = 3;     // 스테이지마다 다시받기 횟수
+const HAND = 20;           // 스테이지마다 받는 내 카드 수
 const MAX_LIFE = 3;
-const PRICE = {pick: 2, redraw: 1, life: 3};
+const PRICE = {pick: 2, discard: 2, life: 3};
 
 const SUITS = ['♠','♥','♦','♣'];
 const RL = {11:'J',12:'Q',13:'K',14:'A'};
@@ -141,12 +138,9 @@ function handName(e){
   }
 }
 
-// ---------- 카드 뽑기 ----------
-function randomCardNotIn(ex){
-  const pool = [];
-  for (const s of SUITS) for (let r = 2; r <= 14; r++){ const c = {r, s}; if (!ex.has(key(c))) pool.push(c); }
-  return pool[Math.random() * pool.length | 0];
-}
+// ---------- 카드 더미 (52장 한 벌, 중복 없음) ----------
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fullDeck(){ const d = []; for (const s of SUITS) for (let r = 2; r <= 14; r++) d.push({r, s}); return d; }
 function combos(n, k, f){
   const idx = [];
   (function rec(st){
@@ -163,25 +157,29 @@ function bestFive(cards){
   });
   return best;
 }
-// 상대는 스테이지가 오를수록 더 많은 카드 중 최고 5장을 고름
+// 상대는 항상 5장을 내지만, 스테이지가 오를수록 더 많이 뽑아 그중 최고 5장을 고름
 const oppPool = stage => 5 + Math.min(Math.floor((stage - 1) / 2), 4);
+function drawPile(n){
+  if (S.pile.length < n){ S.pile = shuffle(S.pile.concat(S.discard)); S.discard = []; }
+  return S.pile.splice(0, n);
+}
 function genOpp(){
-  const ex = new Set(S.hand.map(key));
-  const cards = [];
-  for (let i = 0; i < oppPool(S.stage); i++){ const c = randomCardNotIn(ex); ex.add(key(c)); cards.push(c); }
-  const five = bestFive(cards);
+  const drawn = drawPile(oppPool(S.stage));
+  S.discard.push(...drawn);              // 상대가 뽑은 카드는 라운드가 끝나면 버림 더미로
+  const five = bestFive(drawn);
   const cnt = {}; five.forEach(c => cnt[c.r] = (cnt[c.r] || 0) + 1);
-  return five.sort((a,b) => cnt[b.r] - cnt[a.r] || b.r - a.r);
+  return five.slice().sort((a,b) => cnt[b.r] - cnt[a.r] || b.r - a.r);
 }
 function sortHand(){
   const si = s => SUITS.indexOf(s);
   if (S.sortBy === 'suit') S.hand.sort((a,b) => si(a.s) - si(b.s) || b.r - a.r);
   else S.hand.sort((a,b) => b.r - a.r || si(a.s) - si(b.s));
 }
-function refill(extraEx = [], markNew = false){
-  const ex = new Set([...S.hand, ...extraEx].map(key));
-  while (S.hand.length < HAND){ const c = randomCardNotIn(ex); ex.add(key(c)); c.fresh = true; if (markNew) c.isNew = true; S.hand.push(c); }
-  sortHand();
+function dealStage(){
+  const deck = shuffle(fullDeck());
+  S.hand = deck.slice(0, HAND); S.hand.forEach(c => c.fresh = true);
+  S.pile = deck.slice(HAND); S.discard = [];
+  S.round = 1; sortHand();
 }
 
 // ---------- 게임 흐름 ----------
@@ -191,15 +189,15 @@ try { best = +localStorage.getItem('hankkut-best') || 0; } catch(e){}
 let S = {phase:'title'};
 
 function newGame(){
-  S = {stage:1, round:1, life:MAX_LIFE, coins:0, redraws:BASE_REDRAW, hand:[], sel:new Set(),
-       opp:null, oppEval:null, phase:'play', sortBy:'rank', wins:0, close:0, modal:null, pickCard:null, msg:null};
-  refill();
+  S = {stage:1, round:1, life:MAX_LIFE, coins:0, hand:[], pile:[], discard:[], sel:new Set(),
+       opp:null, oppEval:null, phase:'play', sortBy:'rank', wins:0, close:0, cleared:0,
+       modal:null, pickCard:null, discardMode:false, msg:null};
+  dealStage();
   startRound();
 }
 function startRound(){
   S.opp = genOpp(); S.oppEval = evaluate(S.opp); S.oppFresh = true;
-  S.sel.clear(); S.phase = 'play'; S.msg = null; S.hint = null;
-  S.hand.forEach(c => delete c.isNew);
+  S.sel.clear(); S.phase = 'play'; S.msg = null;
   S.deadline = performance.now() + TIME * 1000;
   render();
 }
@@ -211,13 +209,13 @@ function play(){
   const vs = `<br><small>내 ${handName(e)} vs 상대 ${handName(S.oppEval)}</small>`;
   const won = cmp(e, S.oppEval) > 0;
   const diff = e.cat - S.oppEval.cat;
-  S.hand = S.hand.filter((_, i) => !S.sel.has(i));
+  S.hand = S.hand.filter((_, i) => !S.sel.has(i));   // 낸 카드는 이기든 지든 털림 (새로 받지 않음)
+  S.discard.push(...played);
   S.sel.clear();
-  refill(played);
-  if (!won){ S.life--; return endRound(`패배… 생명 -1${vs}`, 'bad'); }
+  if (!won){ S.life--; return endRound(`패배… ${played.length}장은 털었지만 생명 -1${vs}`, 'bad'); }
   S.wins++;
   if (diff === 0){ S.coins++; S.close++; endRound(`아슬아슬! 한 끗 차이 승리 +1🪙${vs}`, 'great'); }
-  else if (diff === 1) endRound(`승리!${vs}`, 'good');
+  else if (diff === 1) endRound(`승리! ${played.length}장 털기${vs}`, 'good');
   else endRound(`이겼지만 과했어요…${vs}`, 'meh');
 }
 function fail(reason){
@@ -229,41 +227,41 @@ function endRound(text, tone){
   render();
   setTimeout(() => {
     if (S.life <= 0) return gameOver();
-    if (S.round >= ROUNDS) stageClear();
+    if (!S.hand.length) stageClear();
     else { S.round++; startRound(); }
   }, 1400);
 }
 function stageClear(){
-  S.coins += 1; S.redraws = BASE_REDRAW; S.phase = 'shop'; S.pickCard = null;
+  S.coins += 1; S.cleared++;
+  if (S.stage > best){ best = S.stage; try { localStorage.setItem('hankkut-best', best); } catch(e){} }
+  S.clearedStage = S.stage;
+  S.stage++;
+  dealStage();                     // 다음 스테이지 패를 미리 받고 상점에서 다듬기
+  S.phase = 'shop'; S.pickCard = null; S.discardMode = false;
   render();
 }
-function nextStage(){ S.stage++; S.round = 1; S.pickCard = null; startRound(); }
+function nextStage(){ S.pickCard = null; S.discardMode = false; startRound(); }
 function gameOver(){
   S.phase = 'over';
-  if (S.stage > best){ best = S.stage; try { localStorage.setItem('hankkut-best', best); } catch(e){} }
-  render();
-}
-function redraw(){
-  if (S.phase !== 'play') return;
-  if (S.redraws <= 0){ S.hint = '이번 스테이지 다시받기를 다 썼어요'; return render(); }
-  if (!S.sel.size){ S.hint = '바꿀 카드를 먼저 누른 다음 다시받기를 누르세요'; return render(); }
-  const removed = selCards();
-  S.hand.forEach(c => delete c.isNew);
-  S.hand = S.hand.filter((_, i) => !S.sel.has(i));
-  S.sel.clear(); S.redraws--;
-  refill(removed, true);
-  S.hint = `${removed.length}장을 새로 받았어요 (남은 다시받기 ${S.redraws}회)`;
   render();
 }
 function onCard(i){
   if (S.phase === 'shop' && S.pickCard){
     if (S.coins < PRICE.pick) return;
     S.coins -= PRICE.pick;
+    const out = S.hand[i];
+    S.pile = S.pile.filter(c => key(c) !== key(S.pickCard));
+    S.pile.push(out); shuffle(S.pile);
     S.hand[i] = {...S.pickCard, fresh:true};
     S.pickCard = null; sortHand(); render(); return;
   }
+  if (S.phase === 'shop' && S.discardMode){
+    if (S.coins < PRICE.discard) return;
+    S.coins -= PRICE.discard;
+    S.discard.push(S.hand[i]); S.hand.splice(i, 1);
+    S.discardMode = false; render(); return;
+  }
   if (S.phase !== 'play') return;
-  S.hint = null;
   if (S.sel.has(i)) S.sel.delete(i);
   else if (S.sel.size < 5) S.sel.add(i);
   render();
@@ -276,23 +274,23 @@ const cardHTML = (c, cls = '', attrs = '') =>
 function titleHTML(){
   return `<div class="title">
     <h1>한 끗</h1>
-    <p class="sub">딱 한 끗 차이로 이겨라</p>
+    <p class="sub">딱 한 끗 차이로 이기고, 패를 전부 털어라</p>
     <ul>
-      <li>상대 패(5장)보다 <b>높은 족보</b>를 1~5장으로 내세요</li>
-      <li><b>30초</b> 안에 못 내면 생명 -1</li>
-      <li>낸 장수만큼만 새로 받아요 (항상 7장)</li>
-      <li>마음에 안 드는 카드는 골라서 <b>다시 받기</b></li>
+      <li>카드 한 벌(52장)에서 <b>20장</b>을 받아요. 중복 카드는 없어요</li>
+      <li>매 라운드 상대가 <b>5장</b>을 내요. 더 높은 족보를 1~5장으로 내세요</li>
+      <li>낸 카드는 사라지고 <b>새로 받지 않아요</b></li>
+      <li>내 패를 <b>전부 털면</b> 스테이지 클리어!</li>
+      <li>지는 패를 내도 카드는 털리지만 생명 -1, <b>30초</b> 안에 못 내도 생명 -1</li>
       <li><b>같은 족보</b>로 이기면 아슬아슬 보너스 🪙</li>
-      <li>스테이지를 깨면 상점에서 원하는 카드를 사요</li>
     </ul>
-    ${best ? `<p class="muted" style="margin:0">최고 기록: 스테이지 ${best}</p>` : ''}
+    ${best ? `<p class="muted" style="margin:0">최고 기록: 스테이지 ${best} 클리어</p>` : ''}
     <div class="btns"><button class="primary" data-act="start">시작하기</button></div>
   </div>`;
 }
 function topHTML(){
   return `<div class="top">
-    <div>스테이지 <b>${S.stage}</b><small>${S.phase === 'shop' ? '클리어' : `라운드 ${S.round}/${ROUNDS}`}</small></div>
-    <div class="stats"><span>${'❤️'.repeat(Math.max(S.life,0))}${'🖤'.repeat(MAX_LIFE - Math.max(S.life,0))}</span>
+    <div>스테이지 <b>${S.stage}</b><small>${S.phase === 'shop' ? '준비' : `라운드 ${S.round}`}</small></div>
+    <div class="stats"><span>${'❤️'.repeat(Math.max(S.life,0))}${'🖤'.repeat(Math.max(MAX_LIFE - Math.max(S.life,0), 0))}</span>
     <span>🪙 ${S.coins}</span></div>
   </div>`;
 }
@@ -304,13 +302,14 @@ function oppHTML(){
   </div>`;
 }
 function shopHTML(){
-  const dis = p => (S.coins < p || S.pickCard) ? 'disabled' : '';
+  const busy = S.pickCard || S.discardMode;
+  const dis = p => (S.coins < p || busy) ? 'disabled' : '';
   return `<div class="zone shop">
-    <h2>스테이지 ${S.stage} 클리어! 🎉</h2>
-    <p class="muted">클리어 보상 +1🪙</p>
+    <h2>스테이지 ${S.clearedStage} 클리어! 🎉</h2>
+    <p class="muted">클리어 보상 +1🪙 · 다음 스테이지 패 20장을 새로 받았어요</p>
     <div class="items">
-      <button class="item" data-act="buy-pick" ${dis(PRICE.pick)}><b>카드 고르기</b><small>원하는 카드 1장으로 교체</small><span>🪙${PRICE.pick}</span></button>
-      <button class="item" data-act="buy-redraw" ${dis(PRICE.redraw)}><b>다시받기 +1</b><small>다음 스테이지 다시받기 ${S.redraws}회</small><span>🪙${PRICE.redraw}</span></button>
+      <button class="item" data-act="buy-pick" ${dis(PRICE.pick)}><b>카드 바꾸기</b><small>원하는 카드를 골라 내 카드 1장과 교체</small><span>🪙${PRICE.pick}</span></button>
+      <button class="item" data-act="buy-discard" ${dis(PRICE.discard)}><b>카드 버리기</b><small>털기 힘든 카드 1장을 미리 버리기</small><span>🪙${PRICE.discard}</span></button>
       <button class="item" data-act="buy-life" ${S.life >= MAX_LIFE ? 'disabled' : dis(PRICE.life)}><b>생명 회복</b><small>❤️ +1 (최대 ${MAX_LIFE})</small><span>🪙${PRICE.life}</span></button>
     </div>
   </div>`;
@@ -320,30 +319,28 @@ function statusHTML(){
     return `<div class="status ${S.msg ? S.msg.tone : ''}">${S.msg ? S.msg.text : ''}</div>`;
   }
   if (S.phase === 'shop'){
-    return S.pickCard
-      ? `<div class="status good">${rl(S.pickCard.r)}${S.pickCard.s} — 바꿀 내 카드를 누르세요&nbsp;<button class="mini" data-act="cancel-pick">취소</button></div>`
-      : `<div class="status">코인으로 패를 다듬고 다음 스테이지로!</div>`;
+    if (S.pickCard) return `<div class="status good">${rl(S.pickCard.r)}${S.pickCard.s} — 바꿀 내 카드를 누르세요&nbsp;<button class="mini" data-act="cancel">취소</button></div>`;
+    if (S.discardMode) return `<div class="status good">버릴 내 카드를 누르세요&nbsp;<button class="mini" data-act="cancel">취소</button></div>`;
+    return `<div class="status">코인으로 패를 다듬고 시작하세요!</div>`;
   }
-  if (S.hint) return `<div class="status good">${S.hint}</div>`;
   if (!S.sel.size) return `<div class="status meh">상대보다 높은 패를 골라 내세요 (1~5장)</div>`;
   return `<div class="status">내 패: ${handName(evaluate(selCards()))}</div>`;
 }
 function handHTML(){
-  const replacing = S.phase === 'shop' && S.pickCard;
+  const targeting = S.phase === 'shop' && (S.pickCard || S.discardMode);
   return `<div class="zone">
-    <div class="zone-h"><span>내 패 ${S.hand.length}장 · 바꿀 카드를 골라 다시받기</span>
+    <div class="zone-h"><span>내 패 <b>${S.hand.length}</b>장 남음</span>
       <button class="mini" data-act="sort">정렬: ${S.sortBy === 'rank' ? '숫자' : '무늬'}</button></div>
     <div class="row hand">${S.hand.map((c, i) =>
-      cardHTML(c, `${S.sel.has(i) ? 'sel' : ''} ${c.fresh ? 'deal' : ''} ${c.isNew ? 'new' : ''}`, `data-act="card" data-i="${i}" ${replacing ? 'style="outline-color:rgba(255,207,74,.5)"' : ''}`)
+      cardHTML(c, `${S.sel.has(i) ? 'sel' : ''} ${c.fresh ? 'deal' : ''}`, `data-act="card" data-i="${i}" ${targeting ? 'style="outline-color:rgba(255,207,74,.5)"' : ''}`)
     ).join('')}</div>
   </div>`;
 }
 function buttonsHTML(){
-  if (S.phase === 'shop') return `<div class="btns"><button class="primary" data-act="next">다음 스테이지 ▶</button></div>`;
+  if (S.phase === 'shop') return `<div class="btns"><button class="primary" data-act="next">스테이지 ${S.stage} 시작 ▶</button></div>`;
   const p = S.phase === 'play';
   const canPlay = p && S.sel.size > 0;
   return `<div class="btns">
-    <button data-act="redraw" ${p ? '' : 'disabled'}>다시받기 (${S.redraws})</button>
     <button data-act="pass" ${p ? '' : 'disabled'}>포기</button>
     <button class="primary" data-act="play" ${canPlay ? '' : 'disabled'}>내기</button>
   </div>`;
@@ -358,16 +355,16 @@ function ranksHTML(){
 function helpHTML(){
   return `<div class="modal" data-act="close"><div class="sheet" data-act="noop">
     <h2>규칙</h2>
-    <p class="muted">· 스트레이트·플러시는 5장으로만 만들 수 있어요<br>· 같은 족보면 높은 숫자, 그다음 남은 카드(키커) 순으로 비교해요<br>· 비기면 진 거예요. 반드시 더 높아야 해요<br>· 지는 패를 내면 그 카드도 잃고 생명 -1<br>· 이 창을 열어도 타이머는 계속 돌아요!</p>
+    <p class="muted">· 20장을 전부 털면 스테이지 클리어. 낸 카드는 새로 받지 않아요<br>· 스트레이트·플러시는 5장으로만 만들 수 있어요<br>· 같은 족보면 높은 숫자, 그다음 남은 카드(키커) 순으로 비교해요. 약한 카드는 키커로 끼워서 털 수 있어요<br>· 비기면 진 거예요. 반드시 더 높아야 해요<br>· 지는 패를 내도 그 카드는 털리지만 생명 -1<br>· 포기하거나 시간이 지나면 카드는 그대로, 생명 -1<br>· 이 창을 열어도 타이머는 계속 돌아요!</p>
     <div class="btns"><button data-act="close">닫기</button></div>
   </div></div>`;
 }
 function pickerHTML(){
-  const inHand = new Set(S.hand.map(key));
+  const avail = new Set(S.pile.map(key));
   let g = '';
   for (const s of SUITS) for (let r = 14; r >= 2; r--){
     const c = {r, s};
-    g += `<button class="pk ${isRed(s) ? 'red' : ''}" data-act="pick" data-r="${r}" data-s="${s}" ${inHand.has(key(c)) ? 'disabled' : ''}>${rl(r)}${s}</button>`;
+    g += `<button class="pk ${isRed(s) ? 'red' : ''}" data-act="pick" data-r="${r}" data-s="${s}" ${avail.has(key(c)) ? '' : 'disabled'}>${rl(r)}${s}</button>`;
   }
   return `<div class="modal" data-act="close"><div class="sheet" data-act="noop">
     <h2>가져올 카드 고르기</h2><div class="grid">${g}</div>
@@ -378,8 +375,8 @@ function overHTML(){
   return `<div class="modal"><div class="sheet over">
     <h2 style="text-align:center">게임 오버</h2>
     <p class="big">스테이지 ${S.stage}</p>
-    <p>승리 ${S.wins}회 · 아슬아슬 ${S.close}회</p>
-    <p class="muted" style="text-align:center">최고 기록: 스테이지 ${best}</p>
+    <p>남은 카드 ${S.hand.length}장 · 승리 ${S.wins}회 · 아슬아슬 ${S.close}회</p>
+    <p class="muted" style="text-align:center">클리어한 스테이지 ${S.cleared}개 · 최고 기록 ${best}</p>
     <div class="btns"><button class="primary" data-act="start">다시 하기</button></div>
   </div></div>`;
 }
@@ -413,15 +410,14 @@ app.addEventListener('click', ev => {
     case 'start': newGame(); break;
     case 'card': onCard(+t.dataset.i); break;
     case 'play': play(); break;
-    case 'redraw': redraw(); break;
     case 'pass': if (S.phase === 'play') fail('포기'); break;
     case 'sort': S.sortBy = S.sortBy === 'rank' ? 'suit' : 'rank'; S.sel.clear(); sortHand(); render(); break;
     case 'help': S.modal = 'help'; render(); break;
     case 'close': S.modal = null; render(); break;
     case 'buy-pick': S.modal = 'picker'; render(); break;
     case 'pick': S.pickCard = {r:+t.dataset.r, s:t.dataset.s}; S.modal = null; render(); break;
-    case 'cancel-pick': S.pickCard = null; render(); break;
-    case 'buy-redraw': if (S.coins >= PRICE.redraw){ S.coins -= PRICE.redraw; S.redraws++; } render(); break;
+    case 'buy-discard': S.discardMode = true; render(); break;
+    case 'cancel': S.pickCard = null; S.discardMode = false; render(); break;
     case 'buy-life': if (S.coins >= PRICE.life && S.life < MAX_LIFE){ S.coins -= PRICE.life; S.life++; } render(); break;
     case 'next': nextStage(); break;
   }
