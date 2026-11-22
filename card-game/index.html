@@ -8,7 +8,7 @@
 :root{
   --text:#f3f1e8; --muted:#b9c7bf; --panel:rgba(0,0,0,.25);
   --card:#fffdf7; --red:#c8323c; --black:#1d1d1f;
-  --accent:#ffcf4a; --good:#5fd38d; --bad:#ff6b6b; --btn:#2a6f58;
+  --accent:#ffcf4a; --good:#5fd38d; --bad:#ff6b6b; --btn:#2a6f58; --back:#8c2f39;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
@@ -16,81 +16,107 @@ body{background:radial-gradient(ellipse at top,#1a6650,#0c2f25 70%) fixed;backgr
   font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;user-select:none;-webkit-user-select:none}
 #app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:12px 16px 20px;gap:12px}
 .top{display:flex;justify-content:space-between;align-items:center;font-weight:600;gap:8px}
-.top small{color:var(--muted);font-weight:500;margin-left:4px}
-.stats{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.top small{color:var(--muted);font-weight:500;margin-left:6px}
+.score{display:flex;gap:10px;align-items:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+.score .w{color:var(--good)} .score .l{color:var(--bad)} .score .d{color:var(--muted)}
+.dots{display:flex;gap:5px;justify-content:center}
+.dots i{width:22px;height:8px;border-radius:4px;background:rgba(255,255,255,.12)}
+.dots i.W{background:var(--good)} .dots i.L{background:var(--bad)} .dots i.D{background:var(--muted)}
+.dots i.now{outline:2px solid var(--accent);outline-offset:1px}
 .zone{background:var(--panel);border-radius:14px;padding:12px}
 .zone-h{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted);margin-bottom:10px;gap:8px}
-.zone-h b{color:var(--text);font-size:16px}
+.zone-h b{color:var(--text)}
+.table{display:grid;grid-template-columns:3fr 2fr;gap:10px}
+.table .zone{min-width:0}
 .row{display:flex;gap:6px;justify-content:center}
-.row.hand{flex-wrap:wrap;row-gap:14px;padding-top:6px}
-.card{flex:0 0 auto;width:calc((100% - 36px)/7);max-width:62px;aspect-ratio:5/7;background:var(--card);border-radius:8px;
+.slot{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0;max-width:62px}
+.tag{font-size:10px;color:var(--muted);white-space:nowrap;height:12px}
+.tag.out{color:var(--bad)}
+.card{width:100%;aspect-ratio:5/7;background:var(--card);border-radius:8px;
   color:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:800;
-  box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .12s,outline-color .12s;outline:3px solid transparent;cursor:pointer;position:relative}
-.opp .card{width:calc((100% - 24px)/5);max-width:66px;cursor:default}
+  box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .12s,outline-color .12s;outline:3px solid transparent;position:relative}
 .card .r{font-size:clamp(15px,4.6vw,22px);line-height:1}
 .card .s{font-size:clamp(16px,5vw,24px);line-height:1}
 .card.red{color:var(--red)}
+.card.back{background:repeating-linear-gradient(45deg,var(--back) 0 6px,#a63d48 6px 12px);border:3px solid var(--card)}
+.card.leaving{opacity:.55}
+.hand{flex-wrap:wrap;padding-top:6px}
+.hand .card{flex:0 0 auto;width:calc((100% - 42px)/8);max-width:58px;cursor:pointer}
+.hand .card .r{font-size:clamp(14px,4.2vw,20px)} .hand .card .s{font-size:clamp(14px,4.4vw,22px)}
 .card.sel{transform:translateY(-12px);outline-color:var(--accent)}
 .card.deal{animation:deal .35s ease-out both}
+.card.flip{animation:flip .4s ease-out both}
 @keyframes deal{from{transform:translateY(24px) scale(.85);opacity:0}}
-.timer{height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;margin-top:12px}
+@keyframes flip{from{transform:rotateY(90deg)}}
+@media (prefers-reduced-motion:reduce){.card.deal,.card.flip{animation:none}}
+.timer{height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden}
 .timer>i{display:block;height:100%;width:100%;background:var(--good);transition:width .1s linear}
 .timer>i.warn{background:var(--bad)}
-.tleft{text-align:right;font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
-.status{min-height:52px;text-align:center;font-weight:700;display:flex;align-items:center;justify-content:center;
-  padding:8px 12px;border-radius:12px;background:rgba(0,0,0,.18);font-size:15px;line-height:1.35}
-.status.win{color:var(--good)} .status.lose,.status.bad{color:var(--bad)}
-.status.great{color:var(--accent);font-size:18px} .status.good{color:var(--good)} .status.meh{color:var(--muted)}
+.status{min-height:56px;text-align:center;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:8px 12px;border-radius:12px;background:rgba(0,0,0,.18);font-size:15px;line-height:1.4}
+.status small{font-weight:500;color:var(--muted);font-size:13px}
+.status.W{color:var(--good);font-size:18px} .status.L{color:var(--bad);font-size:18px} .status.D{color:var(--muted);font-size:18px}
+.status.close{color:var(--accent)}
 .btns{display:flex;gap:8px}
-button{font:inherit;border:0;white-space:nowrap;border-radius:12px;padding:14px 10px;font-weight:700;font-size:16px;cursor:pointer;flex:1;
-  background:var(--btn);color:var(--text)}
+button{font:inherit;border:0;border-radius:12px;padding:14px 10px;font-weight:700;font-size:16px;cursor:pointer;flex:1;
+  background:var(--btn);color:var(--text);white-space:nowrap}
 button.primary{background:var(--accent);color:#3a2a00}
 button:disabled{opacity:.38;cursor:default}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 button.mini{flex:none;padding:6px 10px;font-size:13px;border-radius:8px;background:rgba(255,255,255,.12)}
-.shop h2{margin:2px 0 4px;font-size:20px}
-.muted{color:var(--muted);font-size:14px;margin:0 0 12px}
-.items{display:flex;flex-direction:column;gap:8px}
-.item{display:grid;grid-template-columns:1fr auto;text-align:left;padding:12px 14px;background:rgba(255,255,255,.1)}
-.item small{grid-column:1;color:var(--muted);font-weight:500;font-size:13px}
-.item span{grid-row:1/3;grid-column:2;align-self:center;font-size:16px}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
-.sheet{background:#123f32;border-radius:16px;padding:18px;width:100%;max-width:480px;max-height:90vh;overflow:auto;
-  box-shadow:0 10px 30px rgba(0,0,0,.5)}
-.sheet h2{margin:0 0 12px}
+.tracker .grid{display:grid;grid-template-columns:repeat(13,1fr);gap:2px}
+.tracker .grid span{font-size:11px;font-weight:800;text-align:center;padding:4px 0;border-radius:4px;background:var(--card);color:var(--black)}
+.tracker .grid span.red{color:var(--red)}
+.tracker .grid span.gone{opacity:.18}
+.tracker .grid span.mine{background:var(--accent)}
+.tracker .grid span.peek{background:var(--good)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .ranks ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:13px}
 .ranks li{display:flex;flex-direction:column;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.06)}
 .ranks li span{color:var(--muted);font-size:11px}
 .ranks li.on{background:var(--accent);color:#3a2a00}.ranks li.on span{color:#5a4500}
-.rank-list{margin:0 0 12px;padding-left:22px;line-height:1.8}
-.rank-list li span{color:var(--muted);font-size:13px;margin-left:6px}
-.grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-bottom:6px}
-.pk{padding:7px 0;font-size:12px;border-radius:5px;background:var(--card);color:var(--black);flex:none;font-weight:800}
-.pk.red{color:var(--red)}
-.title{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;text-align:center}
-.title h1{font-size:64px;margin:0;letter-spacing:4px}
-.title .sub{color:var(--accent);font-weight:700;margin:-8px 0 0}
-.title ul{text-align:left;line-height:1.8;background:var(--panel);border-radius:14px;padding:14px 14px 14px 32px;margin:0}
-.big{font-size:40px;text-align:center;margin:4px 0}
+.ranks li.op{outline:2px solid var(--bad)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.sheet{background:#123f32;border-radius:16px;padding:18px;width:100%;max-width:480px;max-height:90vh;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.sheet h2{margin:0 0 12px}
+.muted{color:var(--muted);font-size:14px;margin:0 0 12px;line-height:1.6}
+.title{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px}
+.title h1{font-size:64px;margin:0;letter-spacing:4px;text-align:center}
+.title .sub{color:var(--accent);font-weight:700;margin:-8px 0 0;text-align:center}
+.title ul{line-height:1.8;background:var(--panel);border-radius:14px;padding:14px 14px 14px 32px;margin:0}
+.diffs{display:flex;flex-direction:column;gap:8px}
+.diff{display:grid;grid-template-columns:1fr auto;text-align:left;padding:12px 14px}
+.diff small{grid-column:1;font-weight:500;font-size:13px;opacity:.8}
+.diff span{grid-row:1/3;grid-column:2;align-self:center;font-size:13px;font-weight:600;opacity:.85}
+.big{font-size:40px;text-align:center;margin:4px 0;font-variant-numeric:tabular-nums}
 .over p{text-align:center;margin:6px 0}
+.hist{display:flex;flex-direction:column;gap:4px;font-size:13px;margin:12px 0}
+.hist div{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.06)}
+.hist b.W{color:var(--good)} .hist b.L{color:var(--bad)} .hist b.D{color:var(--muted)}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
 // ---------- 설정 ----------
-const TIME = 30;           // 라운드 제한시간(초)
-const HAND = 20;           // 스테이지마다 받는 내 카드 수
-const MAX_LIFE = 3;
-const PRICE = {pick: 2, discard: 2, life: 3};
+const ROUNDS = 10;      // 총 판 수
+const START_HAND = 8;   // 처음 손패 (매 판 2장씩 보충, 각자 총 20장)
+const DIFF = {
+  easy:   {name:'쉬움',   time:30, peek:true,  desc:'상대 카드 1장 엿보기 · 30초'},
+  normal: {name:'보통',   time:30, peek:false, desc:'엿보기 없음 · 30초'},
+  hard:   {name:'어려움', time:15, peek:false, desc:'엿보기 없음 · 15초'},
+};
 
 const SUITS = ['♠','♥','♦','♣'];
 const RL = {11:'J',12:'Q',13:'K',14:'A'};
 const rl = r => RL[r] || String(r);
 const CAT = ['하이카드','원페어','투페어','트리플','스트레이트','플러시','풀하우스','포카드','스트레이트 플러시'];
+const CAT_DESC = ['가장 높은 카드','같은 숫자 2장','페어 2개','같은 숫자 3장','연속 숫자 5장','같은 무늬 5장','트리플+원페어','같은 숫자 4장','같은 무늬 연속 5장'];
 const key = c => c.r + c.s;
 const isRed = s => s === '♥' || s === '♦';
 
-// ---------- 족보 판정 (1~5장) ----------
+// ---------- 족보 판정 (5장) ----------
 function evaluate(cards){
   const n = cards.length;
   const counts = {};
@@ -138,268 +164,236 @@ function handName(e){
   }
 }
 
-// ---------- 카드 더미 (52장 한 벌, 중복 없음) ----------
+// ---------- 카드 한 벌 52장 = 공통 12 + 나 20 + 상대 20 ----------
 function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function fullDeck(){ const d = []; for (const s of SUITS) for (let r = 2; r <= 14; r++) d.push({r, s}); return d; }
-function combos(n, k, f){
-  const idx = [];
-  (function rec(st){
-    if (idx.length === k){ f(idx); return; }
-    for (let i = st; i < n; i++){ idx.push(i); rec(i + 1); idx.pop(); }
-  })(0);
-}
-function bestFive(cards){
-  if (cards.length <= 5) return cards;
-  let best = null, be = null;
-  combos(cards.length, 5, idx => {
-    const h = idx.map(i => cards[i]); const e = evaluate(h);
-    if (!be || cmp(e, be) > 0){ best = h; be = e; }
-  });
+const commNow = () => S.comm.slice(S.round - 1, S.round + 2);   // 공통 3장: 매 판 가장 오래된 1장이 빠지고 1장 추가
+const D = () => DIFF[S.diff];
+
+// 상대: 지금 공통 카드와 합쳐 가장 센 2장을 냄 (같은 세기면 낮은 카드를 냄)
+function opponentChoose(){
+  const c = commNow(), h = S.opHand;
+  let best = null, be = null, bsum = 0;
+  for (let i = 0; i < h.length; i++) for (let j = i + 1; j < h.length; j++){
+    const e = evaluate([...c, h[i], h[j]]), sum = h[i].r + h[j].r;
+    if (!be || cmp(e, be) > 0 || (cmp(e, be) === 0 && sum < bsum)){ best = [h[i], h[j]]; be = e; bsum = sum; }
+  }
   return best;
-}
-// 상대는 항상 5장을 내지만, 스테이지가 오를수록 더 많이 뽑아 그중 최고 5장을 고름
-const oppPool = stage => 5 + Math.min(Math.floor((stage - 1) / 2), 4);
-function drawPile(n){
-  if (S.pile.length < n){ S.pile = shuffle(S.pile.concat(S.discard)); S.discard = []; }
-  return S.pile.splice(0, n);
-}
-function genOpp(){
-  const drawn = drawPile(oppPool(S.stage));
-  S.discard.push(...drawn);              // 상대가 뽑은 카드는 라운드가 끝나면 버림 더미로
-  const five = bestFive(drawn);
-  const cnt = {}; five.forEach(c => cnt[c.r] = (cnt[c.r] || 0) + 1);
-  return five.slice().sort((a,b) => cnt[b.r] - cnt[a.r] || b.r - a.r);
 }
 function sortHand(){
   const si = s => SUITS.indexOf(s);
   if (S.sortBy === 'suit') S.hand.sort((a,b) => si(a.s) - si(b.s) || b.r - a.r);
   else S.hand.sort((a,b) => b.r - a.r || si(a.s) - si(b.s));
 }
-function dealStage(){
-  const deck = shuffle(fullDeck());
-  S.hand = deck.slice(0, HAND); S.hand.forEach(c => c.fresh = true);
-  S.pile = deck.slice(HAND); S.discard = [];
-  S.round = 1; sortHand();
-}
 
 // ---------- 게임 흐름 ----------
 const app = document.getElementById('app');
-let best = 0;
-try { best = +localStorage.getItem('hankkut-best') || 0; } catch(e){}
+const loadBest = d => { try { return JSON.parse(localStorage.getItem('hankkut2-best-' + d)) || null; } catch(e){ return null; } };
+const saveBest = (d, v) => { try { localStorage.setItem('hankkut2-best-' + d, JSON.stringify(v)); } catch(e){} };
 let S = {phase:'title'};
 
-function newGame(){
-  S = {stage:1, round:1, life:MAX_LIFE, coins:0, hand:[], pile:[], discard:[], sel:new Set(),
-       opp:null, oppEval:null, phase:'play', sortBy:'rank', wins:0, close:0, cleared:0,
-       modal:null, pickCard:null, discardMode:false, msg:null};
-  dealStage();
+function newGame(diff){
+  const deck = shuffle(fullDeck());
+  S = {diff, round:1, comm:deck.slice(0, 12), myDeck:deck.slice(12, 32), opDeck:deck.slice(32, 52),
+       hand:[], opHand:[], myPlayed:[], opPlayed:[], sel:[], res:[], phase:'play', sortBy:'rank', modal:null};
+  S.hand = S.myDeck.splice(0, START_HAND); S.hand.forEach(c => c.fresh = true);
+  S.opHand = S.opDeck.splice(0, START_HAND);
+  sortHand();
   startRound();
 }
 function startRound(){
-  S.opp = genOpp(); S.oppEval = evaluate(S.opp); S.oppFresh = true;
-  S.sel.clear(); S.phase = 'play'; S.msg = null;
-  S.deadline = performance.now() + TIME * 1000;
+  S.opPick = opponentChoose();
+  S.peek = D().peek ? S.opPick[Math.random() * 2 | 0] : null;
+  S.sel = []; S.phase = 'play'; S.last = null; S.commFresh = true;
+  S.deadline = performance.now() + D().time * 1000;
   render();
 }
-const selCards = () => [...S.sel].map(i => S.hand[i]);
-function play(){
-  if (S.phase !== 'play' || !S.sel.size) return;
-  const played = selCards();
-  const e = evaluate(played);
-  const vs = `<br><small>내 ${handName(e)} vs 상대 ${handName(S.oppEval)}</small>`;
-  const won = cmp(e, S.oppEval) > 0;
-  const diff = e.cat - S.oppEval.cat;
-  S.hand = S.hand.filter((_, i) => !S.sel.has(i));   // 낸 카드는 이기든 지든 털림 (새로 받지 않음)
-  S.discard.push(...played);
-  S.sel.clear();
-  if (!won){ S.life--; return endRound(`패배… ${played.length}장은 털었지만 생명 -1${vs}`, 'bad'); }
-  S.wins++;
-  if (diff === 0){ S.coins++; S.close++; endRound(`아슬아슬! 한 끗 차이 승리 +1🪙${vs}`, 'great'); }
-  else if (diff === 1) endRound(`승리! ${played.length}장 털기${vs}`, 'good');
-  else endRound(`이겼지만 과했어요…${vs}`, 'meh');
-}
-function fail(reason){
-  S.life--; S.sel.clear();
-  endRound(`${reason} — 생명 -1<br><small>상대 ${handName(S.oppEval)}</small>`, 'bad');
-}
-function endRound(text, tone){
-  S.phase = 'result'; S.msg = {text, tone}; S.modal = null;
-  render();
-  setTimeout(() => {
-    if (S.life <= 0) return gameOver();
-    if (!S.hand.length) stageClear();
-    else { S.round++; startRound(); }
-  }, 1400);
-}
-function stageClear(){
-  S.coins += 1; S.cleared++;
-  if (S.stage > best){ best = S.stage; try { localStorage.setItem('hankkut-best', best); } catch(e){} }
-  S.clearedStage = S.stage;
-  S.stage++;
-  dealStage();                     // 다음 스테이지 패를 미리 받고 상점에서 다듬기
-  S.phase = 'shop'; S.pickCard = null; S.discardMode = false;
+function play(auto){
+  if (S.phase !== 'play') return;
+  let mine;
+  if (auto){ mine = S.hand.slice().sort((a,b) => a.r - b.r).slice(0, 2); }
+  else { if (S.sel.length !== 2) return; mine = S.sel.map(i => S.hand[i]); }
+  const opp = S.opPick, c = commNow();
+  S.hand = S.hand.filter(x => !mine.includes(x));
+  S.opHand = S.opHand.filter(x => !opp.includes(x));
+  S.myPlayed.push(...mine); S.opPlayed.push(...opp);
+  const me = evaluate([...c, ...mine]), op = evaluate([...c, ...opp]);
+  const r = cmp(me, op);
+  const outcome = r > 0 ? 'W' : r < 0 ? 'L' : 'D';
+  S.last = {outcome, me, op, mine, opp, auto, close: outcome === 'W' && me.cat === op.cat};
+  S.res.push(S.last);
+  S.sel = []; S.phase = 'result';
   render();
 }
-function nextStage(){ S.pickCard = null; S.discardMode = false; startRound(); }
-function gameOver(){
+function nextRound(){
+  if (S.round >= ROUNDS) return finish();
+  while (S.hand.length < START_HAND && S.myDeck.length){ const c = S.myDeck.shift(); c.fresh = true; S.hand.push(c); }
+  while (S.opHand.length < START_HAND && S.opDeck.length) S.opHand.push(S.opDeck.shift());
+  S.round++; sortHand(); startRound();
+}
+const tally = () => {
+  const t = {W:0, D:0, L:0, close:0};
+  S.res.forEach(r => { t[r.outcome]++; if (r.close) t.close++; });
+  return t;
+};
+function finish(){
+  const t = tally(), b = loadBest(S.diff);
+  S.newBest = !b || t.W > b.W || (t.W === b.W && t.D > b.D);
+  if (S.newBest) saveBest(S.diff, {W:t.W, D:t.D});
   S.phase = 'over';
   render();
 }
 function onCard(i){
-  if (S.phase === 'shop' && S.pickCard){
-    if (S.coins < PRICE.pick) return;
-    S.coins -= PRICE.pick;
-    const out = S.hand[i];
-    S.pile = S.pile.filter(c => key(c) !== key(S.pickCard));
-    S.pile.push(out); shuffle(S.pile);
-    S.hand[i] = {...S.pickCard, fresh:true};
-    S.pickCard = null; sortHand(); render(); return;
-  }
-  if (S.phase === 'shop' && S.discardMode){
-    if (S.coins < PRICE.discard) return;
-    S.coins -= PRICE.discard;
-    S.discard.push(S.hand[i]); S.hand.splice(i, 1);
-    S.discardMode = false; render(); return;
-  }
   if (S.phase !== 'play') return;
-  if (S.sel.has(i)) S.sel.delete(i);
-  else if (S.sel.size < 5) S.sel.add(i);
+  const at = S.sel.indexOf(i);
+  if (at >= 0) S.sel.splice(at, 1);
+  else { S.sel.push(i); if (S.sel.length > 2) S.sel.shift(); }
   render();
 }
 
 // ---------- 화면 ----------
 const cardHTML = (c, cls = '', attrs = '') =>
   `<div class="card ${isRed(c.s) ? 'red' : ''} ${cls}" ${attrs}><span class="r">${rl(c.r)}</span><span class="s">${c.s}</span></div>`;
+const backHTML = (cls = '') => `<div class="card back ${cls}"></div>`;
+const slot = (inner, tag = '', tagCls = '') => `<div class="slot"><div class="tag ${tagCls}">${tag}</div>${inner}</div>`;
+const bestText = d => { const b = loadBest(d); return b ? `최고 ${b.W}승 ${b.D}무` : '기록 없음'; };
 
 function titleHTML(){
   return `<div class="title">
     <h1>한 끗</h1>
-    <p class="sub">딱 한 끗 차이로 이기고, 패를 전부 털어라</p>
+    <p class="sub">공통 카드 3장, 내 카드 2장으로 승부</p>
     <ul>
-      <li>카드 한 벌(52장)에서 <b>20장</b>을 받아요. 중복 카드는 없어요</li>
-      <li>매 라운드 상대가 <b>5장</b>을 내요. 더 높은 족보를 1~5장으로 내세요</li>
-      <li>낸 카드는 사라지고 <b>새로 받지 않아요</b></li>
-      <li>내 패를 <b>전부 털면</b> 스테이지 클리어!</li>
-      <li>지는 패를 내도 카드는 털리지만 생명 -1, <b>30초</b> 안에 못 내도 생명 -1</li>
-      <li><b>같은 족보</b>로 이기면 아슬아슬 보너스 🪙</li>
+      <li>가운데 <b>공통 카드 3장</b>에 내 카드 <b>2장</b>을 더해 5장 족보를 만들어요</li>
+      <li>상대도 손패에서 <b>가장 센 2장</b>을 숨겨서 내요</li>
+      <li>내가 내면 상대 카드가 공개돼요. 이기면 승, 같으면 무승부</li>
+      <li>매 판 공통 카드는 <b>가장 오래된 1장이 빠지고</b> 새 1장이 들어와요</li>
+      <li>손패 8장으로 시작해 매 판 2장씩 보충. <b>52장으로 딱 10판</b></li>
+      <li>나온 카드를 세면 상대 손패를 추리할 수 있어요</li>
     </ul>
-    ${best ? `<p class="muted" style="margin:0">최고 기록: 스테이지 ${best} 클리어</p>` : ''}
-    <div class="btns"><button class="primary" data-act="start">시작하기</button></div>
-  </div>`;
-}
-function topHTML(){
-  return `<div class="top">
-    <div>스테이지 <b>${S.stage}</b><small>${S.phase === 'shop' ? '준비' : `라운드 ${S.round}`}</small></div>
-    <div class="stats"><span>${'❤️'.repeat(Math.max(S.life,0))}${'🖤'.repeat(Math.max(MAX_LIFE - Math.max(S.life,0), 0))}</span>
-    <span>🪙 ${S.coins}</span></div>
-  </div>`;
-}
-function oppHTML(){
-  return `<div class="zone">
-    <div class="zone-h"><span>상대 패</span></div>
-    <div class="row opp">${S.opp.map(c => cardHTML(c, S.oppFresh ? 'deal' : '')).join('')}</div>
-    <div class="timer"><i id="bar"></i></div><div class="tleft" id="tleft"></div>
-  </div>`;
-}
-function shopHTML(){
-  const busy = S.pickCard || S.discardMode;
-  const dis = p => (S.coins < p || busy) ? 'disabled' : '';
-  return `<div class="zone shop">
-    <h2>스테이지 ${S.clearedStage} 클리어! 🎉</h2>
-    <p class="muted">클리어 보상 +1🪙 · 다음 스테이지 패 20장을 새로 받았어요</p>
-    <div class="items">
-      <button class="item" data-act="buy-pick" ${dis(PRICE.pick)}><b>카드 바꾸기</b><small>원하는 카드를 골라 내 카드 1장과 교체</small><span>🪙${PRICE.pick}</span></button>
-      <button class="item" data-act="buy-discard" ${dis(PRICE.discard)}><b>카드 버리기</b><small>털기 힘든 카드 1장을 미리 버리기</small><span>🪙${PRICE.discard}</span></button>
-      <button class="item" data-act="buy-life" ${S.life >= MAX_LIFE ? 'disabled' : dis(PRICE.life)}><b>생명 회복</b><small>❤️ +1 (최대 ${MAX_LIFE})</small><span>🪙${PRICE.life}</span></button>
+    <div class="diffs">
+      ${Object.entries(DIFF).map(([k, d]) => `<button class="diff ${k === 'normal' ? 'primary' : ''}" data-act="start" data-diff="${k}">
+        <b>${d.name}</b><small>${d.desc}</small><span>${bestText(k)}</span></button>`).join('')}
     </div>
   </div>`;
 }
+function topHTML(){
+  const t = tally();
+  return `<div class="top">
+    <div>${S.round}<small>/ ${ROUNDS}판 · ${D().name}</small></div>
+    <div class="score"><span class="w">${t.W}승</span><span class="d">${t.D}무</span><span class="l">${t.L}패</span>
+    <button class="mini" data-act="help">규칙</button></div>
+  </div>
+  <div class="dots">${Array.from({length:ROUNDS}, (_, i) =>
+    `<i class="${S.res[i] ? S.res[i].outcome : ''} ${i === S.round - 1 && S.phase === 'play' ? 'now' : ''}"></i>`).join('')}</div>`;
+}
+function tableHTML(){
+  const c = commNow();
+  const lastRound = S.round >= ROUNDS;
+  const comm = c.map((x, i) => slot(cardHTML(x, `${S.commFresh && i === 2 ? 'deal' : ''} ${i === 0 && !lastRound ? 'leaving' : ''}`),
+    i === 0 && !lastRound ? '다음 판에 빠짐' : i === 2 && S.round > 1 ? '새 카드' : '', i === 0 ? 'out' : '')).join('');
+  let opp;
+  if (S.phase === 'play'){
+    opp = S.opPick.map(x => S.peek && x === S.peek ? slot(cardHTML(x), '엿보기') : slot(backHTML())).join('');
+  } else {
+    opp = S.last.opp.map(x => slot(cardHTML(x, 'flip'), '공개')).join('');
+  }
+  return `<div class="table">
+    <div class="zone"><div class="zone-h"><span>공통 카드</span></div><div class="row">${comm}</div></div>
+    <div class="zone"><div class="zone-h"><span>상대</span><span>손패 ${S.opHand.length}</span></div><div class="row">${opp}</div></div>
+  </div>
+  ${S.phase === 'play' ? '<div class="timer"><i id="bar"></i></div>' : ''}`;
+}
 function statusHTML(){
   if (S.phase === 'result' || S.phase === 'over'){
-    return `<div class="status ${S.msg ? S.msg.tone : ''}">${S.msg ? S.msg.text : ''}</div>`;
+    const L = S.last;
+    const head = L.outcome === 'W' ? (L.close ? '아슬아슬! 한 끗 차이 승리' : '승리!') : L.outcome === 'L' ? '패배' : '무승부';
+    return `<div class="status ${L.outcome} ${L.close ? 'close' : ''}">${L.auto ? '<small>시간 초과! 가장 낮은 2장이 나갔어요</small>' : ''}${head}
+      <small>나 ${handName(L.me)} · 상대 ${handName(L.op)}</small></div>`;
   }
-  if (S.phase === 'shop'){
-    if (S.pickCard) return `<div class="status good">${rl(S.pickCard.r)}${S.pickCard.s} — 바꿀 내 카드를 누르세요&nbsp;<button class="mini" data-act="cancel">취소</button></div>`;
-    if (S.discardMode) return `<div class="status good">버릴 내 카드를 누르세요&nbsp;<button class="mini" data-act="cancel">취소</button></div>`;
-    return `<div class="status">코인으로 패를 다듬고 시작하세요!</div>`;
-  }
-  if (!S.sel.size) return `<div class="status meh">상대보다 높은 패를 골라 내세요 (1~5장)</div>`;
-  return `<div class="status">내 패: ${handName(evaluate(selCards()))}</div>`;
+  const left = `<small id="tleft"></small>`;
+  if (S.sel.length < 2) return `<div class="status">내 카드 ${2 - S.sel.length}장을 ${S.sel.length ? '더 ' : ''}고르세요${left}</div>`;
+  const e = evaluate([...commNow(), ...S.sel.map(i => S.hand[i])]);
+  return `<div class="status">내 족보: ${handName(e)}${left}</div>`;
 }
 function handHTML(){
-  const targeting = S.phase === 'shop' && (S.pickCard || S.discardMode);
   return `<div class="zone">
-    <div class="zone-h"><span>내 패 <b>${S.hand.length}</b>장 남음</span>
+    <div class="zone-h"><span>내 손패 <b>${S.hand.length}</b>장 · 덱 ${S.myDeck.length}장</span>
       <button class="mini" data-act="sort">정렬: ${S.sortBy === 'rank' ? '숫자' : '무늬'}</button></div>
     <div class="row hand">${S.hand.map((c, i) =>
-      cardHTML(c, `${S.sel.has(i) ? 'sel' : ''} ${c.fresh ? 'deal' : ''}`, `data-act="card" data-i="${i}" ${targeting ? 'style="outline-color:rgba(255,207,74,.5)"' : ''}`)
-    ).join('')}</div>
+      cardHTML(c, `${S.sel.includes(i) ? 'sel' : ''} ${c.fresh ? 'deal' : ''}`, `data-act="card" data-i="${i}"`)).join('')}</div>
   </div>`;
 }
 function buttonsHTML(){
-  if (S.phase === 'shop') return `<div class="btns"><button class="primary" data-act="next">스테이지 ${S.stage} 시작 ▶</button></div>`;
-  const p = S.phase === 'play';
-  const canPlay = p && S.sel.size > 0;
-  return `<div class="btns">
-    <button data-act="pass" ${p ? '' : 'disabled'}>포기</button>
-    <button class="primary" data-act="play" ${canPlay ? '' : 'disabled'}>내기</button>
-  </div>`;
+  if (S.phase === 'result') return `<div class="btns"><button class="primary" data-act="next">${S.round >= ROUNDS ? '최종 결과 보기' : '다음 판 ▶'}</button></div>`;
+  if (S.phase === 'over') return '';
+  return `<div class="btns"><button class="primary" data-act="play" ${S.sel.length === 2 ? '' : 'disabled'}>2장 내기</button></div>`;
 }
-const CAT_DESC = ['가장 높은 카드','같은 숫자 2장','페어 2개','같은 숫자 3장','연속 숫자 5장','같은 무늬 5장','트리플+원페어','같은 숫자 4장','같은 무늬 연속 5장'];
+function trackerHTML(){
+  const mine = new Set(S.hand.map(key));
+  const gone = new Set([...S.myPlayed, ...S.opPlayed, ...S.comm.slice(0, S.round + 2)].map(key));
+  const peek = S.phase === 'play' && S.peek ? key(S.peek) : null;
+  let cells = '', unknown = 0;
+  for (const s of SUITS) for (let r = 14; r >= 2; r--){
+    const k = r + s;
+    const st = k === peek ? 'peek' : mine.has(k) ? 'mine' : gone.has(k) ? 'gone' : '';
+    if (!st) unknown++;
+    cells += `<span class="${isRed(s) ? 'red' : ''} ${st}">${rl(r)}${s}</span>`;
+  }
+  return `<div class="zone tracker"><div class="zone-h"><span>카드 기록</span><span>모르는 카드 <b>${unknown}</b>장</span></div>
+    <div class="grid">${cells}</div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>내 손패</span><span><i style="background:var(--card);opacity:.3"></i>이미 나옴</span>
+    ${D().peek ? '<span><i style="background:var(--good)"></i>엿본 카드</span>' : ''}<span><i style="background:var(--card)"></i>상대 손패 · 아직 안 나온 카드</span></div></div>`;
+}
 function ranksHTML(){
-  const cur = S.phase === 'play' && S.sel.size ? evaluate(selCards()).cat : -1;
-  return `<div class="zone ranks"><div class="zone-h"><span>족보 (높은 순)</span><button class="mini" data-act="help">규칙</button></div>
+  const cur = S.phase === 'play' && S.sel.length === 2 ? evaluate([...commNow(), ...S.sel.map(i => S.hand[i])]).cat
+    : S.last ? S.last.me.cat : -1;
+  const op = S.phase !== 'play' && S.last ? S.last.op.cat : -1;
+  return `<div class="zone ranks"><div class="zone-h"><span>족보 (높은 순)</span>${op >= 0 ? '<span>노랑 나 · 빨강 테두리 상대</span>' : ''}</div>
     <ol>${CAT.map((n, i) => ({n, i})).reverse().map(({n, i}) =>
-      `<li class="${i === cur ? 'on' : ''}"><b>${n}</b><span>${CAT_DESC[i]}</span></li>`).join('')}</ol></div>`;
+      `<li class="${i === cur ? 'on' : ''} ${i === op ? 'op' : ''}"><b>${n}</b><span>${CAT_DESC[i]}</span></li>`).join('')}</ol></div>`;
 }
 function helpHTML(){
   return `<div class="modal" data-act="close"><div class="sheet" data-act="noop">
     <h2>규칙</h2>
-    <p class="muted">· 20장을 전부 털면 스테이지 클리어. 낸 카드는 새로 받지 않아요<br>· 스트레이트·플러시는 5장으로만 만들 수 있어요<br>· 같은 족보면 높은 숫자, 그다음 남은 카드(키커) 순으로 비교해요. 약한 카드는 키커로 끼워서 털 수 있어요<br>· 비기면 진 거예요. 반드시 더 높아야 해요<br>· 지는 패를 내도 그 카드는 털리지만 생명 -1<br>· 포기하거나 시간이 지나면 카드는 그대로, 생명 -1<br>· 이 창을 열어도 타이머는 계속 돌아요!</p>
+    <p class="muted">· 공통 카드 3장 + 내 카드 2장 = 5장으로 족보를 만들어요. 상대도 똑같이 공통 카드를 써요<br>
+    · 상대는 매 판 손패에서 지금 가장 센 2장을 내요. 센 카드를 일찍 써버리는 상대예요<br>
+    · 같은 족보면 높은 숫자, 그다음 남은 카드 순으로 비교해요. 완전히 같으면 무승부<br>
+    · 매 판 왼쪽 공통 카드가 빠지고 새 카드가 오른쪽에 들어와요. 다음 판 공통 카드 2장은 미리 알 수 있어요<br>
+    · 둘 다 8장으로 시작해 매 판 2장씩 보충해요. 7판째부터는 보충이 없어요<br>
+    · 52장이 모두 한 번씩만 나와요. 카드 기록에서 아직 안 나온 카드를 보고 상대 손패를 추리하세요<br>
+    · 시간이 다 되면 가장 낮은 2장이 자동으로 나가요<br>
+    · 이 창을 열어도 타이머는 계속 돌아요!</p>
     <div class="btns"><button data-act="close">닫기</button></div>
   </div></div>`;
 }
-function pickerHTML(){
-  const avail = new Set(S.pile.map(key));
-  let g = '';
-  for (const s of SUITS) for (let r = 14; r >= 2; r--){
-    const c = {r, s};
-    g += `<button class="pk ${isRed(s) ? 'red' : ''}" data-act="pick" data-r="${r}" data-s="${s}" ${avail.has(key(c)) ? '' : 'disabled'}>${rl(r)}${s}</button>`;
-  }
-  return `<div class="modal" data-act="close"><div class="sheet" data-act="noop">
-    <h2>가져올 카드 고르기</h2><div class="grid">${g}</div>
-    <div class="btns" style="margin-top:12px"><button data-act="close">취소</button></div>
-  </div></div>`;
-}
 function overHTML(){
+  const t = tally();
   return `<div class="modal"><div class="sheet over">
-    <h2 style="text-align:center">게임 오버</h2>
-    <p class="big">스테이지 ${S.stage}</p>
-    <p>남은 카드 ${S.hand.length}장 · 승리 ${S.wins}회 · 아슬아슬 ${S.close}회</p>
-    <p class="muted" style="text-align:center">클리어한 스테이지 ${S.cleared}개 · 최고 기록 ${best}</p>
-    <div class="btns"><button class="primary" data-act="start">다시 하기</button></div>
+    <h2 style="text-align:center">10판 결과 · ${D().name}</h2>
+    <p class="big">${t.W}승 ${t.D}무 ${t.L}패</p>
+    <p>${S.newBest ? '🎉 최고 기록!' : bestText(S.diff)} · 아슬아슬 승리 ${t.close}회</p>
+    <div class="hist">${S.res.map((r, i) => `<div><b class="${r.outcome}">${i + 1}</b><span>나 ${handName(r.me)}</span><span>상대 ${handName(r.op)}</span></div>`).join('')}</div>
+    <div class="btns"><button data-act="title">난이도 선택</button><button class="primary" data-act="start" data-diff="${S.diff}">다시 하기</button></div>
   </div></div>`;
 }
 function render(){
   if (S.phase === 'title'){ app.innerHTML = titleHTML(); return; }
-  let h = topHTML();
-  h += S.phase === 'shop' ? shopHTML() : oppHTML();
-  h += statusHTML() + handHTML() + buttonsHTML() + ranksHTML();
+  let h = topHTML() + tableHTML() + statusHTML() + handHTML() + buttonsHTML() + trackerHTML() + ranksHTML();
   if (S.modal === 'help') h += helpHTML();
-  if (S.modal === 'picker') h += pickerHTML();
   if (S.phase === 'over') h += overHTML();
   app.innerHTML = h;
   S.hand.forEach(c => delete c.fresh);
-  S.oppFresh = false;
+  S.commFresh = false;
   tick();
 }
 function tick(){
   if (S.phase !== 'play') return;
+  const T = D().time;
   const left = Math.max(0, (S.deadline - performance.now()) / 1000);
   const bar = document.getElementById('bar'), tl = document.getElementById('tleft');
-  if (bar){ bar.style.width = (left / TIME * 100) + '%'; bar.className = left < 10 ? 'warn' : ''; }
-  if (tl) tl.textContent = Math.ceil(left) + '초';
-  if (left <= 0) fail('시간 초과');
+  if (bar){ bar.style.width = (left / T * 100) + '%'; bar.className = left < T / 3 ? 'warn' : ''; }
+  if (tl) tl.textContent = `남은 시간 ${Math.ceil(left)}초`;
+  if (left <= 0) play(true);
 }
 setInterval(tick, 100);
 
@@ -407,19 +401,14 @@ app.addEventListener('click', ev => {
   const t = ev.target.closest('[data-act]');
   if (!t || t.disabled) return;
   switch (t.dataset.act){
-    case 'start': newGame(); break;
+    case 'start': newGame(t.dataset.diff); break;
+    case 'title': S = {phase:'title'}; render(); break;
     case 'card': onCard(+t.dataset.i); break;
-    case 'play': play(); break;
-    case 'pass': if (S.phase === 'play') fail('포기'); break;
-    case 'sort': S.sortBy = S.sortBy === 'rank' ? 'suit' : 'rank'; S.sel.clear(); sortHand(); render(); break;
+    case 'play': play(false); break;
+    case 'next': nextRound(); break;
+    case 'sort': S.sortBy = S.sortBy === 'rank' ? 'suit' : 'rank'; S.sel = []; sortHand(); render(); break;
     case 'help': S.modal = 'help'; render(); break;
     case 'close': S.modal = null; render(); break;
-    case 'buy-pick': S.modal = 'picker'; render(); break;
-    case 'pick': S.pickCard = {r:+t.dataset.r, s:t.dataset.s}; S.modal = null; render(); break;
-    case 'buy-discard': S.discardMode = true; render(); break;
-    case 'cancel': S.pickCard = null; S.discardMode = false; render(); break;
-    case 'buy-life': if (S.coins >= PRICE.life && S.life < MAX_LIFE){ S.coins -= PRICE.life; S.life++; } render(); break;
-    case 'next': nextStage(); break;
   }
 });
 render();
