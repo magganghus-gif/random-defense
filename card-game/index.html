@@ -56,6 +56,10 @@ button.mini{flex:none;padding:6px 10px;font-size:13px;border-radius:8px;backgrou
 .sheet{background:#123f32;border-radius:16px;padding:18px;width:100%;max-width:480px;max-height:90vh;overflow:auto;
   box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .sheet h2{margin:0 0 12px}
+.ranks ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:13px}
+.ranks li{display:flex;flex-direction:column;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.06)}
+.ranks li span{color:var(--muted);font-size:11px}
+.ranks li.on{background:var(--accent);color:#3a2a00}.ranks li.on span{color:#5a4500}
 .rank-list{margin:0 0 12px;padding-left:22px;line-height:1.8}
 .rank-list li span{color:var(--muted);font-size:13px;margin-left:6px}
 .grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-bottom:6px}
@@ -199,20 +203,23 @@ function startRound(){
 const selCards = () => [...S.sel].map(i => S.hand[i]);
 function play(){
   if (S.phase !== 'play' || !S.sel.size) return;
-  const e = evaluate(selCards());
-  if (cmp(e, S.oppEval) <= 0) return;
-  const diff = e.cat - S.oppEval.cat;
   const played = selCards();
+  const e = evaluate(played);
+  const vs = `<br><small>내 ${handName(e)} vs 상대 ${handName(S.oppEval)}</small>`;
+  const won = cmp(e, S.oppEval) > 0;
+  const diff = e.cat - S.oppEval.cat;
   S.hand = S.hand.filter((_, i) => !S.sel.has(i));
-  S.sel.clear(); S.wins++;
+  S.sel.clear();
   refill(played);
-  if (diff === 0){ S.coins++; S.close++; endRound(`아슬아슬! 한 끗 차이 승리 +1🪙`, 'great'); }
-  else if (diff === 1) endRound(`승리! ${handName(e)}`, 'good');
-  else endRound(`이겼지만 과했어요… (${handName(e)})`, 'meh');
+  if (!won){ S.life--; return endRound(`패배… 생명 -1${vs}`, 'bad'); }
+  S.wins++;
+  if (diff === 0){ S.coins++; S.close++; endRound(`아슬아슬! 한 끗 차이 승리 +1🪙${vs}`, 'great'); }
+  else if (diff === 1) endRound(`승리!${vs}`, 'good');
+  else endRound(`이겼지만 과했어요…${vs}`, 'meh');
 }
 function fail(reason){
   S.life--; S.sel.clear();
-  endRound(`${reason} — 생명 -1`, 'bad');
+  endRound(`${reason} — 생명 -1<br><small>상대 ${handName(S.oppEval)}</small>`, 'bad');
 }
 function endRound(text, tone){
   S.phase = 'result'; S.msg = {text, tone}; S.modal = null;
@@ -278,12 +285,12 @@ function topHTML(){
   return `<div class="top">
     <div>스테이지 <b>${S.stage}</b><small>${S.phase === 'shop' ? '클리어' : `라운드 ${S.round}/${ROUNDS}`}</small></div>
     <div class="stats"><span>${'❤️'.repeat(Math.max(S.life,0))}${'🖤'.repeat(MAX_LIFE - Math.max(S.life,0))}</span>
-    <span>🪙 ${S.coins}</span><button class="mini" data-act="help">족보</button></div>
+    <span>🪙 ${S.coins}</span></div>
   </div>`;
 }
 function oppHTML(){
   return `<div class="zone">
-    <div class="zone-h"><span>상대 패 <small>(${oppPool(S.stage)}장 중 최고)</small></span><b>${handName(S.oppEval)}</b></div>
+    <div class="zone-h"><span>상대 패</span></div>
     <div class="row opp">${S.opp.map(c => cardHTML(c, S.oppFresh ? 'deal' : '')).join('')}</div>
     <div class="timer"><i id="bar"></i></div><div class="tleft" id="tleft"></div>
   </div>`;
@@ -292,7 +299,7 @@ function shopHTML(){
   const dis = p => (S.coins < p || S.pickCard) ? 'disabled' : '';
   return `<div class="zone shop">
     <h2>스테이지 ${S.stage} 클리어! 🎉</h2>
-    <p class="muted">클리어 보상 +1🪙 · 다음 상대: ${oppPool(S.stage + 1)}장 중 최고 5장</p>
+    <p class="muted">클리어 보상 +1🪙</p>
     <div class="items">
       <button class="item" data-act="buy-pick" ${dis(PRICE.pick)}><b>카드 고르기</b><small>원하는 카드 1장으로 교체</small><span>🪙${PRICE.pick}</span></button>
       <button class="item" data-act="buy-redraw" ${dis(PRICE.redraw)}><b>다시받기 +1</b><small>다음 스테이지 다시받기 ${S.redraws}회</small><span>🪙${PRICE.redraw}</span></button>
@@ -309,12 +316,8 @@ function statusHTML(){
       ? `<div class="status good">${rl(S.pickCard.r)}${S.pickCard.s} — 바꿀 내 카드를 누르세요&nbsp;<button class="mini" data-act="cancel-pick">취소</button></div>`
       : `<div class="status">코인으로 패를 다듬고 다음 스테이지로!</div>`;
   }
-  if (!S.sel.size) return `<div class="status meh">상대보다 높은 패를 골라주세요 (1~5장)</div>`;
-  const e = evaluate(selCards());
-  const win = cmp(e, S.oppEval) > 0;
-  if (!win) return `<div class="status lose">${handName(e)} → 부족해요 ✗</div>`;
-  const close = e.cat === S.oppEval.cat;
-  return `<div class="status win">${handName(e)} → 이김 ✓${close ? '<br><small>같은 족보! 아슬아슬 보너스 🪙</small>' : ''}</div>`;
+  if (!S.sel.size) return `<div class="status meh">상대보다 높은 패를 골라 내세요 (1~5장)</div>`;
+  return `<div class="status">내 패: ${handName(evaluate(selCards()))}</div>`;
 }
 function handHTML(){
   const replacing = S.phase === 'shop' && S.pickCard;
@@ -329,20 +332,24 @@ function handHTML(){
 function buttonsHTML(){
   if (S.phase === 'shop') return `<div class="btns"><button class="primary" data-act="next">다음 스테이지 ▶</button></div>`;
   const p = S.phase === 'play';
-  const canWin = p && S.sel.size && cmp(evaluate(selCards()), S.oppEval) > 0;
+  const canPlay = p && S.sel.size > 0;
   return `<div class="btns">
     <button data-act="redraw" ${p && S.sel.size && S.redraws > 0 ? '' : 'disabled'}>🔄 다시받기</button>
     <button data-act="pass" ${p ? '' : 'disabled'}>포기</button>
-    <button class="primary" data-act="play" ${canWin ? '' : 'disabled'}>내기</button>
+    <button class="primary" data-act="play" ${canPlay ? '' : 'disabled'}>내기</button>
   </div>`;
+}
+const CAT_DESC = ['가장 높은 카드','같은 숫자 2장','페어 2개','같은 숫자 3장','연속 숫자 5장','같은 무늬 5장','트리플+원페어','같은 숫자 4장','같은 무늬 연속 5장'];
+function ranksHTML(){
+  const cur = S.phase === 'play' && S.sel.size ? evaluate(selCards()).cat : -1;
+  return `<div class="zone ranks"><div class="zone-h"><span>족보 (높은 순)</span><button class="mini" data-act="help">규칙</button></div>
+    <ol>${CAT.map((n, i) => ({n, i})).reverse().map(({n, i}) =>
+      `<li class="${i === cur ? 'on' : ''}"><b>${n}</b><span>${CAT_DESC[i]}</span></li>`).join('')}</ol></div>`;
 }
 function helpHTML(){
   return `<div class="modal" data-act="close"><div class="sheet" data-act="noop">
-    <h2>족보 (높은 순)</h2>
-    <ol class="rank-list">
-      ${CAT.slice().reverse().map((n, i) => `<li>${n}<span>${['같은 무늬 연속 5장','같은 숫자 4장','트리플+원페어','같은 무늬 5장','연속 숫자 5장','같은 숫자 3장','페어 2개','같은 숫자 2장','가장 높은 카드'][i]}</span></li>`).join('')}
-    </ol>
-    <p class="muted">· 스트레이트·플러시는 5장으로만 만들 수 있어요<br>· 같은 족보면 높은 숫자, 그다음 남은 카드(키커) 순으로 비교해요<br>· 비기면 진 거예요. 반드시 더 높아야 해요<br>· 이 창을 열어도 타이머는 계속 돌아요!</p>
+    <h2>규칙</h2>
+    <p class="muted">· 스트레이트·플러시는 5장으로만 만들 수 있어요<br>· 같은 족보면 높은 숫자, 그다음 남은 카드(키커) 순으로 비교해요<br>· 비기면 진 거예요. 반드시 더 높아야 해요<br>· 지는 패를 내면 그 카드도 잃고 생명 -1<br>· 이 창을 열어도 타이머는 계속 돌아요!</p>
     <div class="btns"><button data-act="close">닫기</button></div>
   </div></div>`;
 }
@@ -371,7 +378,7 @@ function render(){
   if (S.phase === 'title'){ app.innerHTML = titleHTML(); return; }
   let h = topHTML();
   h += S.phase === 'shop' ? shopHTML() : oppHTML();
-  h += statusHTML() + handHTML() + buttonsHTML();
+  h += statusHTML() + handHTML() + buttonsHTML() + ranksHTML();
   if (S.modal === 'help') h += helpHTML();
   if (S.modal === 'picker') h += pickerHTML();
   if (S.phase === 'over') h += overHTML();
