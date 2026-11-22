@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>한 끗</title>
+<style>
+:root{
+  --text:#f3f1e8; --muted:#b9c7bf; --panel:rgba(0,0,0,.25);
+  --card:#fffdf7; --red:#c8323c; --black:#1d1d1f;
+  --accent:#ffcf4a; --good:#5fd38d; --bad:#ff6b6b; --btn:#2a6f58; --back:#8c2f39;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(ellipse at top,#1a6650,#0c2f25 70%) fixed;background-color:#0c2f25;color:var(--text);
+  font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;user-select:none;-webkit-user-select:none}
+#app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:12px 16px 20px;gap:12px}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:600;gap:8px}
+.top small{color:var(--muted);font-weight:500;margin-left:6px}
+.score{display:flex;gap:10px;align-items:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+.score .w{color:var(--good)} .score .l{color:var(--bad)} .score .d{color:var(--muted)}
+.dots{display:flex;gap:5px;justify-content:center}
+.dots i{width:22px;height:8px;border-radius:4px;background:rgba(255,255,255,.12)}
+.dots i.W{background:var(--good)} .dots i.L{background:var(--bad)} .dots i.D{background:var(--muted)}
+.dots i.now{outline:2px solid var(--accent);outline-offset:1px}
+.zone{background:var(--panel);border-radius:14px;padding:12px}
+.zone-h{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted);margin-bottom:10px;gap:8px}
+.zone-h b{color:var(--text)}
+.table{display:grid;grid-template-columns:3fr 2fr;gap:10px}
+.table .zone{min-width:0}
+.row{display:flex;gap:6px;justify-content:center}
+.slot{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0;max-width:62px}
+.tag{font-size:10px;color:var(--muted);white-space:nowrap;height:12px}
+.tag.out{color:var(--bad)}
+.card{width:100%;aspect-ratio:5/7;background:var(--card);border-radius:8px;
+  color:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:800;
+  box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .12s,outline-color .12s;outline:3px solid transparent;position:relative}
+.card .r{font-size:clamp(15px,4.6vw,22px);line-height:1}
+.card .s{font-size:clamp(16px,5vw,24px);line-height:1}
+.card.red{color:var(--red)}
+.card.back{background:repeating-linear-gradient(45deg,var(--back) 0 6px,#a63d48 6px 12px);border:3px solid var(--card)}
+.card.leaving{opacity:.55}
+.hand{flex-wrap:wrap;padding-top:6px}
+.hand .card{flex:0 0 auto;width:calc((100% - 42px)/8);max-width:58px;cursor:pointer}
+.hand .card .r{font-size:clamp(14px,4.2vw,20px)} .hand .card .s{font-size:clamp(14px,4.4vw,22px)}
+.card.sel{transform:translateY(-12px);outline-color:var(--accent)}
+.card.deal{animation:deal .35s ease-out both}
+.card.flip{animation:flip .4s ease-out both}
+@keyframes deal{from{transform:translateY(24px) scale(.85);opacity:0}}
+@keyframes flip{from{transform:rotateY(90deg)}}
+@media (prefers-reduced-motion:reduce){.card.deal,.card.flip{animation:none}}
+.timer{height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden}
+.timer>i{display:block;height:100%;width:100%;background:var(--good);transition:width .1s linear}
+.timer>i.warn{background:var(--bad)}
+.status{min-height:56px;text-align:center;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:8px 12px;border-radius:12px;background:rgba(0,0,0,.18);font-size:15px;line-height:1.4}
+.status small{font-weight:500;color:var(--muted);font-size:13px}
+.status.W{color:var(--good);font-size:18px} .status.L{color:var(--bad);font-size:18px} .status.D{color:var(--muted);font-size:18px}
+.status.close{color:var(--accent)}
+.btns{display:flex;gap:8px}
+button{font:inherit;border:0;border-radius:12px;padding:14px 10px;font-weight:700;font-size:16px;cursor:pointer;flex:1;
+  background:var(--btn);color:var(--text);white-space:nowrap}
+button.primary{background:var(--accent);color:#3a2a00}
+button:disabled{opacity:.38;cursor:default}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.mini{flex:none;padding:6px 10px;font-size:13px;border-radius:8px;background:rgba(255,255,255,.12)}
+.tracker .grid{display:grid;grid-template-columns:repeat(13,1fr);gap:2px}
+.tracker .grid span{font-size:11px;font-weight:800;text-align:center;padding:4px 0;border-radius:4px;background:var(--card);color:var(--black)}
+.tracker .grid span.red{color:var(--red)}
+.tracker .grid span.gone{opacity:.18}
+.tracker .grid span.mine{background:var(--accent)}
+.tracker .grid span.peek{background:var(--good)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.ranks ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:13px}
+.ranks li{display:flex;flex-direction:column;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.06)}
+.ranks li span{color:var(--muted);font-size:11px}
+.ranks li.on{background:var(--accent);color:#3a2a00}.ranks li.on span{color:#5a4500}
+.ranks li.op{outline:2px solid var(--bad)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.sheet{background:#123f32;border-radius:16px;padding:18px;width:100%;max-width:480px;max-height:90vh;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.sheet h2{margin:0 0 12px}
+.muted{color:var(--muted);font-size:14px;margin:0 0 12px;line-height:1.6}
+.title{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px}
+.title h1{font-size:64px;margin:0;letter-spacing:4px;text-align:center}
+.title .sub{color:var(--accent);font-weight:700;margin:-8px 0 0;text-align:center}
+.title ul{line-height:1.8;background:var(--panel);border-radius:14px;padding:14px 14px 14px 32px;margin:0}
+.diffs{display:flex;flex-direction:column;gap:8px}
+.diff{display:grid;grid-template-columns:1fr auto;text-align:left;padding:12px 14px}
+.diff small{grid-column:1;font-weight:500;font-size:13px;opacity:.8}
+.diff span{grid-row:1/3;grid-column:2;align-self:center;font-size:13px;font-weight:600;opacity:.85}
+.big{font-size:40px;text-align:center;margin:4px 0;font-variant-numeric:tabular-nums}
+.over p{text-align:center;margin:6px 0}
+.hist{display:flex;flex-direction:column;gap:4px;font-size:13px;margin:12px 0}
+.hist div{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.06)}
+.hist b.W{color:var(--good)} .hist b.L{color:var(--bad)} .hist b.D{color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ---------- 설정 ----------
+const ROUNDS = 10;      // 총 판 수
+const START_HAND = 8;   // 처음 손패 (매 판 2장씩 보충, 각자 총 20장)
+const DIFF = {
+  easy:   {name:'쉬움',   time:30, peek:true,  desc:'상대 카드 1장 엿보기 · 30초'},
+  normal: {name:'보통',   time:30, peek:false, desc:'엿보기 없음 · 30초'},
+  hard:   {name:'어려움', time:15, peek:false, desc:'엿보기 없음 · 15초'},
+};
+
+const SUITS = ['♠','♥','♦','♣'];
+const RL = {11:'J',12:'Q',13:'K',14:'A'};
+const rl = r => RL[r] || String(r);
+const CAT = ['하이카드','원페어','투페어','트리플','스트레이트','플러시','풀하우스','포카드','스트레이트 플러시'];
+const CAT_DESC = ['가장 높은 카드','같은 숫자 2장','페어 2개','같은 숫자 3장','연속 숫자 5장','같은 무늬 5장','트리플+원페어','같은 숫자 4장','같은 무늬 연속 5장'];
+const key = c => c.r + c.s;
+const isRed = s => s === '♥' || s === '♦';
+
+// ---------- 족보 판정 (5장) ----------
+function evaluate(cards){
+  const n = cards.length;
+  const counts = {};
+  cards.forEach(c => counts[c.r] = (counts[c.r] || 0) + 1);
+  const groups = Object.entries(counts).map(([r,c]) => ({r:+r, c})).sort((a,b) => b.c - a.c || b.r - a.r);
+  const tb = groups.map(g => g.r);
+  const flush = n === 5 && cards.every(c => c.s === cards[0].s);
+  let sHigh = 0;
+  if (n === 5 && groups.length === 5){
+    const rs = tb.slice().sort((a,b) => b - a);
+    if (rs[0] - rs[4] === 4) sHigh = rs[0];
+    else if (rs.join() === '14,5,4,3,2') sHigh = 5;
+  }
+  if (sHigh && flush) return {cat:8, tb:[sHigh]};
+  if (groups[0].c === 4) return {cat:7, tb};
+  if (groups[0].c === 3 && groups[1] && groups[1].c === 2) return {cat:6, tb};
+  if (flush) return {cat:5, tb};
+  if (sHigh) return {cat:4, tb:[sHigh]};
+  if (groups[0].c === 3) return {cat:3, tb};
+  if (groups[0].c === 2 && groups[1] && groups[1].c === 2) return {cat:2, tb};
+  if (groups[0].c === 2) return {cat:1, tb};
+  return {cat:0, tb};
+}
+function cmp(a, b){
+  if (a.cat !== b.cat) return a.cat - b.cat;
+  const len = Math.max(a.tb.length, b.tb.length);
+  for (let i = 0; i < len; i++){
+    const x = a.tb[i] ?? -1, y = b.tb[i] ?? -1;
+    if (x !== y) return x - y;
+  }
+  return 0;
+}
+function handName(e){
+  const t = e.tb;
+  switch(e.cat){
+    case 0: return `${rl(t[0])} 하이카드`;
+    case 1: return `${rl(t[0])} 원페어`;
+    case 2: return `${rl(t[0])}·${rl(t[1])} 투페어`;
+    case 3: return `${rl(t[0])} 트리플`;
+    case 4: return `${rl(t[0])} 스트레이트`;
+    case 5: return `${rl(t[0])} 플러시`;
+    case 6: return `${rl(t[0])} 풀하우스`;
+    case 7: return `${rl(t[0])} 포카드`;
+    case 8: return t[0] === 14 ? '로열 스트레이트 플러시' : `${rl(t[0])} 스트레이트 플러시`;
+  }
+}
+
+// ---------- 카드 한 벌 52장 = 공통 12 + 나 20 + 상대 20 ----------
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fullDeck(){ const d = []; for (const s of SUITS) for (let r = 2; r <= 14; r++) d.push({r, s}); return d; }
+const commNow = () => S.comm.slice(S.round - 1, S.round + 2);   // 공통 3장: 매 판 가장 오래된 1장이 빠지고 1장 추가
+const D = () => DIFF[S.diff];
+
+// 상대: 지금 공통 카드와 합쳐 가장 센 2장을 냄 (같은 세기면 낮은 카드를 냄)
+function opponentChoose(){
+  const c = commNow(), h = S.opHand;
+  let best = null, be = null, bsum = 0;
+  for (let i = 0; i < h.length; i++) for (let j = i + 1; j < h.length; j++){
+    const e = evaluate([...c, h[i], h[j]]), sum = h[i].r + h[j].r;
+    if (!be || cmp(e, be) > 0 || (cmp(e, be) === 0 && sum < bsum)){ best = [h[i], h[j]]; be = e; bsum = sum; }
+  }
+  return best;
+}
+function sortHand(){
+  const si = s => SUITS.indexOf(s);
+  if (S.sortBy === 'suit') S.hand.sort((a,b) => si(a.s) - si(b.s) || b.r - a.r);
+  else S.hand.sort((a,b) => b.r - a.r || si(a.s) - si(b.s));
+}
+
+// ---------- 게임 흐름 ----------
+const app = document.getElementById('app');
+const loadBest = d => { try { return JSON.parse(localStorage.getItem('hankkut2-best-' + d)) || null; } catch(e){ return null; } };
+const saveBest = (d, v) => { try { localStorage.setItem('hankkut2-best-' + d, JSON.stringify(v)); } catch(e){} };
+let S = {phase:'title'};
+
+function newGame(diff){
+  const deck = shuffle(fullDeck());
+  S = {diff, round:1, comm:deck.slice(0, 12), myDeck:deck.slice(12, 32), opDeck:deck.slice(32, 52),
+       hand:[], opHand:[], myPlayed:[], opPlayed:[], sel:[], res:[], phase:'play', sortBy:'rank', modal:null};
+  S.hand = S.myDeck.splice(0, START_HAND); S.hand.forEach(c => c.fresh = true);
+  S.opHand = S.opDeck.splice(0, START_HAND);
+  sortHand();
+  startRound();
+}
+function startRound(){
+  S.opPick = opponentChoose();
+  S.peek = D().peek ? S.opPick[Math.random() * 2 | 0] : null;
+  S.sel = []; S.phase = 'play'; S.last = null; S.commFresh = true;
+  S.deadline = performance.now() + D().time * 1000;
+  render();
+}
+function play(auto){
+  if (S.phase !== 'play') return;
+  let mine;
+  if (auto){ mine = S.hand.slice().sort((a,b) => a.r - b.r).slice(0, 2); }
+  else { if (S.sel.length !== 2) return; mine = S.sel.map(i => S.hand[i]); }
+  const opp = S.opPick, c = commNow();
+  S.hand = S.hand.filter(x => !mine.includes(x));
+  S.opHand = S.opHand.filter(x => !opp.includes(x));
+  S.myPlayed.push(...mine); S.opPlayed.push(...opp);
+  const me = evaluate([...c, ...mine]), op = evaluate([...c, ...opp]);
+  const r = cmp(me, op);
+  const outcome = r > 0 ? 'W' : r < 0 ? 'L' : 'D';
+  S.last = {outcome, me, op, mine, opp, auto, close: outcome === 'W' && me.cat === op.cat};
+  S.res.push(S.last);
+  S.sel = []; S.phase = 'result';
+  render();
+}
+function nextRound(){
+  if (S.round >= ROUNDS) return finish();
+  while (S.hand.length < START_HAND && S.myDeck.length){ const c = S.myDeck.shift(); c.fresh = true; S.hand.push(c); }
+  while (S.opHand.length < START_HAND && S.opDeck.length) S.opHand.push(S.opDeck.shift());
+  S.round++; sortHand(); startRound();
+}
+const tally = () => {
+  const t = {W:0, D:0, L:0, close:0};
+  S.res.forEach(r => { t[r.outcome]++; if (r.close) t.close++; });
+  return t;
+};
+function finish(){
+  const t = tally(), b = loadBest(S.diff);
+  S.newBest = !b || t.W > b.W || (t.W === b.W && t.D > b.D);
+  if (S.newBest) saveBest(S.diff, {W:t.W, D:t.D});
+  S.phase = 'over';
+  render();
+}
+function onCard(i){
+  if (S.phase !== 'play') return;
+  const at = S.sel.indexOf(i);
+  if (at >= 0) S.sel.splice(at, 1);
+  else { S.sel.push(i); if (S.sel.length > 2) S.sel.shift(); }
+  render();
+}
+
+// ---------- 화면 ----------
+const cardHTML = (c, cls = '', attrs = '') =>
+  `<div class="card ${isRed(c.s) ? 'red' : ''} ${cls}" ${attrs}><span class="r">${rl(c.r)}</span><span class="s">${c.s}</span></div>`;
+const backHTML = (cls = '') => `<div class="card back ${cls}"></div>`;
+const slot = (inner, tag = '', tagCls = '') => `<div class="slot"><div class="tag ${tagCls}">${tag}</div>${inner}</div>`;
+const bestText = d => { const b = loadBest(d); return b ? `최고 ${b.W}승 ${b.D}무` : '기록 없음'; };
+
+function titleHTML(){
+  return `<div class="title">
+    <h1>한 끗</h1>
+    <p class="sub">공통 카드 3장, 내 카드 2장으로 승부</p>
+    <ul>
+      <li>가운데 <b>공통 카드 3장</b>에 내 카드 <b>2장</b>을 더해 5장 족보를 만들어요</li>
+      <li>상대도 손패에서 <b>가장 센 2장</b>을 숨겨서 내요</li>
+      <li>내가 내면 상대 카드가 공개돼요. 이기면 승, 같으면 무승부</li>
+      <li>매 판 공통 카드는 <b>가장 오래된 1장이 빠지고</b> 새 1장이 들어와요</li>
+      <li>손패 8장으로 시작해 매 판 2장씩 보충. <b>52장으로 딱 10판</b></li>
+      <li>나온 카드를 세면 상대 손패를 추리할 수 있어요</li>
+    </ul>
+    <div class="diffs">
+      ${Object.entries(DIFF).map(([k, d]) => `<button class="diff ${k === 'normal' ? 'primary' : ''}" data-act="start" data-diff="${k}">
+        <b>${d.name}</b><small>${d.desc}</small><span>${bestText(k)}</span></button>`).join('')}
+    </div>
+  </div>`;
+}
+function topHTML(){
+  const t = tally();
+  return `<div class="top">
+    <div>${S.round}<small>/ ${ROUNDS}판 · ${D().name}</small></div>
+    <div class="score"><span class="w">${t.W}승</span><span class="d">${t.D}무</span><span class="l">${t.L}패</span>
+    <button class="mini" data-act="help">규칙</button></div>
+  </div>
+  <div class="dots">${Array.from({length:ROUNDS}, (_, i) =>
+    `<i class="${S.res[i] ? S.res[i].outcome : ''} ${i === S.round - 1 && S.phase === 'play' ? 'now' : ''}"></i>`).join('')}</div>`;
+}
+function tableHTML(){
+  const c = commNow();
+  const lastRound = S.round >= ROUNDS;
+  const comm = c.map((x, i) => slot(cardHTML(x, `${S.commFresh && i === 2 ? 'deal' : ''} ${i === 0 && !lastRound ? 'leaving' : ''}`),
+    i === 0 && !lastRound ? '다음 판에 빠짐' : i === 2 && S.round > 1 ? '새 카드' : '', i === 0 ? 'out' : '')).join('');
+  let opp;
+  if (S.phase === 'play'){
+    opp = S.opPick.map(x => S.peek && x === S.peek ? slot(cardHTML(x), '엿보기') : slot(backHTML())).join('');
+  } else {
+    opp = S.last.opp.map(x => slot(cardHTML(x, 'flip'), '공개')).join('');
+  }
+  return `<div class="table">
+    <div class="zone"><div class="zone-h"><span>공통 카드</span></div><div class="row">${comm}</div></div>
+    <div class="zone"><div class="zone-h"><span>상대</span><span>손패 ${S.opHand.length}</span></div><div class="row">${opp}</div></div>
+  </div>
+  ${S.phase === 'play' ? '<div class="timer"><i id="bar"></i></div>' : ''}`;
+}
+function statusHTML(){
+  if (S.phase === 'result' || S.phase === 'over'){
+    const L = S.last;
+    const head = L.outcome === 'W' ? (L.close ? '아슬아슬! 한 끗 차이 승리' : '승리!') : L.outcome === 'L' ? '패배' : '무승부';
+    return `<div class="status ${L.outcome} ${L.close ? 'close' : ''}">${L.auto ? '<small>시간 초과! 가장 낮은 2장이 나갔어요</small>' : ''}${head}
+      <small>나 ${handName(L.me)} · 상대 ${handName(L.op)}</small></div>`;
+  }
+  const left = `<small id="tleft"></small>`;
+  if (S.sel.length < 2) return `<div class="status">내 카드 ${2 - S.sel.length}장을 ${S.sel.length ? '더 ' : ''}고르세요${left}</div>`;
+  const e = evaluate([...commNow(), ...S.sel.map(i => S.hand[i])]);
+  return `<div class="status">내 족보: ${handName(e)}${left}</div>`;
+}
+function handHTML(){
+  return `<div class="zone">
+    <div class="zone-h"><span>내 손패 <b>${S.hand.length}</b>장 · 덱 ${S.myDeck.length}장</span>
+      <button class="mini" data-act="sort">정렬: ${S.sortBy === 'rank' ? '숫자' : '무늬'}</button></div>
+    <div class="row hand">${S.hand.map((c, i) =>
+      cardHTML(c, `${S.sel.includes(i) ? 'sel' : ''} ${c.fresh ? 'deal' : ''}`, `data-act="card" data-i="${i}"`)).join('')}</div>
+  </div>`;
+}
+function buttonsHTML(){
+  if (S.phase === 'result') return `<div class="btns"><button class="primary" data-act="next">${S.round >= ROUNDS ? '최종 결과 보기' : '다음 판 ▶'}</button></div>`;
+  if (S.phase === 'over') return '';
+  return `<div class="btns"><button class="primary" data-act="play" ${S.sel.length === 2 ? '' : 'disabled'}>2장 내기</button></div>`;
+}
+function trackerHTML(){
+  const mine = new Set(S.hand.map(key));
+  const gone = new Set([...S.myPlayed, ...S.opPlayed, ...S.comm.slice(0, S.round + 2)].map(key));
+  const peek = S.phase === 'play' && S.peek ? key(S.peek) : null;
+  let cells = '', unknown = 0;
+  for (const s of SUITS) for (let r = 14; r >= 2; r--){
+    const k = r + s;
+    const st = k === peek ? 'peek' : mine.has(k) ? 'mine' : gone.has(k) ? 'gone' : '';
+    if (!st) unknown++;
+    cells += `<span class="${isRed(s) ? 'red' : ''} ${st}">${rl(r)}${s}</span>`;
+  }
+  return `<div class="zone tracker"><div class="zone-h"><span>카드 기록</span><span>모르는 카드 <b>${unknown}</b>장</span></div>
+    <div class="grid">${cells}</div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>내 손패</span><span><i style="background:var(--card);opacity:.3"></i>이미 나옴</span>
+    ${D().peek ? '<span><i style="background:var(--good)"></i>엿본 카드</span>' : ''}<span><i style="background:var(--card)"></i>상대 손패 · 아직 안 나온 카드</span></div></div>`;
+}
+function ranksHTML(){
+  const cur = S.phase === 'play' && S.sel.length === 2 ? evaluate([...commNow(), ...S.sel.map(i => S.hand[i])]).cat
+    : S.last ? S.last.me.cat : -1;
+  const op = S.phase !== 'play' && S.last ? S.last.op.cat : -1;
+  return `<div class="zone ranks"><div class="zone-h"><span>족보 (높은 순)</span>${op >= 0 ? '<span>노랑 나 · 빨강 테두리 상대</span>' : ''}</div>
+    <ol>${CAT.map((n, i) => ({n, i})).reverse().map(({n, i}) =>
+      `<li class="${i === cur ? 'on' : ''} ${i === op ? 'op' : ''}"><b>${n}</b><span>${CAT_DESC[i]}</span></li>`).join('')}</ol></div>`;
+}
+function helpHTML(){
+  return `<div class="modal" data-act="close"><div class="sheet" data-act="noop">
+    <h2>규칙</h2>
+    <p class="muted">· 공통 카드 3장 + 내 카드 2장 = 5장으로 족보를 만들어요. 상대도 똑같이 공통 카드를 써요<br>
+    · 상대는 매 판 손패에서 지금 가장 센 2장을 내요. 센 카드를 일찍 써버리는 상대예요<br>
+    · 같은 족보면 높은 숫자, 그다음 남은 카드 순으로 비교해요. 완전히 같으면 무승부<br>
+    · 매 판 왼쪽 공통 카드가 빠지고 새 카드가 오른쪽에 들어와요. 다음 판 공통 카드 2장은 미리 알 수 있어요<br>
+    · 둘 다 8장으로 시작해 매 판 2장씩 보충해요. 7판째부터는 보충이 없어요<br>
+    · 52장이 모두 한 번씩만 나와요. 카드 기록에서 아직 안 나온 카드를 보고 상대 손패를 추리하세요<br>
+    · 시간이 다 되면 가장 낮은 2장이 자동으로 나가요<br>
+    · 이 창을 열어도 타이머는 계속 돌아요!</p>
+    <div class="btns"><button data-act="close">닫기</button></div>
+  </div></div>`;
+}
+function overHTML(){
+  const t = tally();
+  return `<div class="modal"><div class="sheet over">
+    <h2 style="text-align:center">10판 결과 · ${D().name}</h2>
+    <p class="big">${t.W}승 ${t.D}무 ${t.L}패</p>
+    <p>${S.newBest ? '🎉 최고 기록!' : bestText(S.diff)} · 아슬아슬 승리 ${t.close}회</p>
+    <div class="hist">${S.res.map((r, i) => `<div><b class="${r.outcome}">${i + 1}</b><span>나 ${handName(r.me)}</span><span>상대 ${handName(r.op)}</span></div>`).join('')}</div>
+    <div class="btns"><button data-act="title">난이도 선택</button><button class="primary" data-act="start" data-diff="${S.diff}">다시 하기</button></div>
+  </div></div>`;
+}
+function render(){
+  if (S.phase === 'title'){ app.innerHTML = titleHTML(); return; }
+  let h = topHTML() + tableHTML() + statusHTML() + handHTML() + buttonsHTML() + trackerHTML() + ranksHTML();
+  if (S.modal === 'help') h += helpHTML();
+  if (S.phase === 'over') h += overHTML();
+  app.innerHTML = h;
+  S.hand.forEach(c => delete c.fresh);
+  S.commFresh = false;
+  tick();
+}
+function tick(){
+  if (S.phase !== 'play') return;
+  const T = D().time;
+  const left = Math.max(0, (S.deadline - performance.now()) / 1000);
+  const bar = document.getElementById('bar'), tl = document.getElementById('tleft');
+  if (bar){ bar.style.width = (left / T * 100) + '%'; bar.className = left < T / 3 ? 'warn' : ''; }
+  if (tl) tl.textContent = `남은 시간 ${Math.ceil(left)}초`;
+  if (left <= 0) play(true);
+}
+setInterval(tick, 100);
+
+app.addEventListener('click', ev => {
+  const t = ev.target.closest('[data-act]');
+  if (!t || t.disabled) return;
+  switch (t.dataset.act){
+    case 'start': newGame(t.dataset.diff); break;
+    case 'title': S = {phase:'title'}; render(); break;
+    case 'card': onCard(+t.dataset.i); break;
+    case 'play': play(false); break;
+    case 'next': nextRound(); break;
+    case 'sort': S.sortBy = S.sortBy === 'rank' ? 'suit' : 'rank'; S.sel = []; sortHand(); render(); break;
+    case 'help': S.modal = 'help'; render(); break;
+    case 'close': S.modal = null; render(); break;
+  }
+});
+render();
+</script>
+</body>
+</html>
